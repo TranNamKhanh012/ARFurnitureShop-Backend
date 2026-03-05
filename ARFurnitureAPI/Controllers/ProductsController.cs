@@ -29,5 +29,21 @@ namespace ARFurnitureAPI.Controllers
 
             return Ok(products);
         }
+        // Lấy sản phẩm theo CategoryId
+        [HttpGet("category/{categoryId}")]
+        public async Task<ActionResult<IEnumerable<Product>>> GetProductsByCategory(int categoryId)
+        {
+            // Lọc ra các sản phẩm có CategoryId trùng khớp
+            var products = await _context.Products
+                                         .Where(p => p.CategoryId == categoryId)
+                                         .ToListAsync();
+
+            if (products == null || !products.Any())
+            {
+                return NotFound("Không có sản phẩm nào trong danh mục này.");
+            }
+
+            return Ok(products);
+        }
     }
 }
