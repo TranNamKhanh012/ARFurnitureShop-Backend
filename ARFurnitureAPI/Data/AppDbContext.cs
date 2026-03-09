@@ -11,5 +11,8 @@ namespace ARFurnitureAPI.Data
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; } = null!;
         // Sau này chúng ta sẽ thêm các bảng Products, Users... vào đây
+        public DbSet<Wishlist> Wishlists { get; set; }
+        public DbSet<CartItem> CartItems { get; set; }
+        public DbSet<User> Users { get; set; }
     }
 }

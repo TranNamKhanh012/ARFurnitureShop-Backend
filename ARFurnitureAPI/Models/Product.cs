@@ -16,4 +16,6 @@ namespace ARFurnitureAPI.Models
         [ForeignKey("CategoryId")]
         public Category Category { get; set; }
     }
+
+
 }
