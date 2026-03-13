@@ -10,6 +10,8 @@ namespace ARFurnitureAPI.Models
         public string? ModelUrl { get; set; } = string.Empty;
         public double Price { get; set; }
         // BÍ QUYẾT Ở ĐÂY: Thêm cột CategoryId làm Khóa ngoại (Foreign Key)
+        public int Discount { get; set; } // Phần trăm giảm giá (VD: 20 nghĩa là giảm 20%)
+        public double Rating { get; set; } // Số sao đánh giá (VD: 4.5, 5.0)
         public int CategoryId { get; set; }
 
         // Móc nối trực tiếp sản phẩm này với đối tượng Category ở trên
