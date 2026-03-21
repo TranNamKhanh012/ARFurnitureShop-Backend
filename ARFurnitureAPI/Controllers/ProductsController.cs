@@ -74,10 +74,10 @@ namespace ARFurnitureAPI.Controllers
         // ==========================================
         [HttpGet("filter-sort")]
         public async Task<IActionResult> FilterSortProducts(
-            [FromQuery] string query = null,
+            [FromQuery] string? query = null,
             [FromQuery] double? minPrice = null,
             [FromQuery] double? maxPrice = null,
-            [FromQuery] string sortBy = "date_desc" // Mặc định là Mới nhất
+            [FromQuery] string? sortBy = "date_desc" // Mặc định là Mới nhất
         )
         {
             var products = _context.Products.AsQueryable();

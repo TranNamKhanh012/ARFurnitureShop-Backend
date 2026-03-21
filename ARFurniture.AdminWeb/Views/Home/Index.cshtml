@@ -1,0 +1,112 @@
+﻿@model ARFurniture.AdminWeb.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .stat-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: none;
+        height: 100%;
+    }
+
+        .stat-card .info h3 {
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .stat-card .info p {
+            margin: 0;
+            color: #888;
+            font-size: 13px;
+        }
+
+        .stat-card .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+        }
+
+    .bg-purple {
+        background-color: #b05cba;
+    }
+
+    .bg-blue {
+        background-color: #2196f3;
+    }
+
+    .bg-green {
+        background-color: #20c997;
+    }
+
+    .bg-orange {
+        background-color: #f39c12;
+    }
+
+    .bg-pink {
+        background-color: #e83e8c;
+    }
+
+    .bg-yellow {
+        background-color: #ffc107;
+    }
+</style>
+
+<h2 class="mb-4 text-dark font-weight-bold">Admin Dashboard</h2>
+
+<h5 class="mb-3 text-secondary font-weight-bold">Thống kê tổng quan hệ thống</h5>
+<div class="row mb-4 g-3">
+    <div class="col-md"><div class="stat-card"><div class="info"><h3>@Model.TotalProducts</h3><p>Sản phẩm</p></div><div class="icon bg-purple"><i class="fas fa-tshirt"></i></div></div></div>
+    <div class="col-md"><div class="stat-card"><div class="info"><h3>275</h3><p>Hàng đã bán</p></div><div class="icon bg-blue"><i class="fas fa-shopping-cart"></i></div></div></div>
+    <div class="col-md"><div class="stat-card"><div class="info"><h3>1332</h3><p>Hàng trong kho</p></div><div class="icon bg-green"><i class="fas fa-warehouse"></i></div></div></div>
+    <div class="col-md"><div class="stat-card"><div class="info"><h3>@Model.TotalOrders</h3><p>Đơn hàng mới</p></div><div class="icon bg-orange"><i class="fas fa-box"></i></div></div></div>
+    <div class="col-md"><div class="stat-card"><div class="info"><h3>@Model.TotalUsers</h3><p>Người dùng</p></div><div class="icon bg-pink"><i class="fas fa-users"></i></div></div></div>
+</div>
+
+<h5 class="mb-3 text-secondary font-weight-bold">Thống kê tài chính</h5>
+<div class="row mb-4 g-3">
+    <div class="col-md-4"><div class="stat-card"><div class="info"><h3>0đ</h3><p>Tổng doanh thu (tháng)</p></div><div class="icon bg-green"><i class="fas fa-chart-line"></i></div></div></div>
+    <div class="col-md-4"><div class="stat-card"><div class="info"><h3>@Model.RevenueToday.ToString("N0")đ</h3><p>Doanh thu hôm nay</p></div><div class="icon bg-green"><i class="fas fa-briefcase"></i></div></div></div>
+    <div class="col-md-4"><div class="stat-card"><div class="info"><h3>0đ</h3><p>Doanh thu tuần này</p></div><div class="icon bg-yellow"><i class="fas fa-calendar-alt"></i></div></div></div>
+</div>
+
+<h5 class="mb-3 text-secondary font-weight-bold">Doanh thu 7 ngày gần nhất</h5>
+<div class="card shadow-sm border-0 p-3">
+    <canvas id="revenueChart" height="100"></canvas>
+</div>
+
+@section Scripts {
+    <script>
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        const revenueChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Ngày 1', 'Ngày 2', 'Ngày 3', 'Ngày 4', 'Ngày 5', 'Ngày 6', 'Ngày 7'],
+                datasets: [{
+                    label: 'Doanh thu (VNĐ)',
+                    data: [0, 0, 0, 0, 0, 0, 0], // Sau này sẽ gọi API để đẩy mảng dữ liệu thật vào đây
+                    borderColor: '#20c997',
+                    backgroundColor: 'rgba(32, 201, 151, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    </script>
+}
