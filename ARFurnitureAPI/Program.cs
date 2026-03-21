@@ -38,7 +38,7 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler();
+    app.UseExceptionHandler("/error");
 }
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
@@ -49,6 +49,8 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 app.UseStaticFiles();
 
 app.UseAuthorization();
+
+app.Map("/error", () => Results.Problem("An unexpected server error occurred."));
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
