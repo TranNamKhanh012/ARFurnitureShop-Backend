@@ -1,18 +1,26 @@
-﻿var builder = WebApplication.CreateBuilder(args);
+﻿using Microsoft.AspNetCore.HttpOverrides;
+
+var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-// Cấu hình HttpClient gọi sang Project API (Cổng 5103)
+
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"];
+if (string.IsNullOrWhiteSpace(apiBaseUrl))
+{
+    throw new InvalidOperationException("ApiSettings:BaseUrl is not configured.");
+}
+
 builder.Services.AddHttpClient("ApiClient", client =>
 {
-    // ĐÃ SỬA: Điền chính xác cổng của API vào đây (Nhớ kiểm tra kỹ là http hay https nhé)
-    client.BaseAddress = new Uri("http://localhost:5103/");
-})
-.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-{
-    // Dòng này giúp bỏ qua lỗi chứng chỉ bảo mật khi chạy máy ảo ở nhà
-    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+    client.BaseAddress = new Uri(apiBaseUrl);
 });
+
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
 
 var app = builder.Build();
 
@@ -23,6 +31,11 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
