@@ -20,6 +20,9 @@ namespace ARFurnitureAPI.Models
         public Category Category { get; set; }
 
         public string Description { get; set; } = "";
+        public int StockQuantity { get; set; }
+        [NotMapped] // Báo cho EF Core biết đừng tạo cột này trong SQL Server
+        public string? Sizes { get; set; }
 
         // ==========================================
         // THÊM 2 CỘT NÀY VÀO ĐỂ HẾT LỖI ĐỎ VÀ HIỂN THỊ LÊN APP:

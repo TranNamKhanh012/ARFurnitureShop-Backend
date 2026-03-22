@@ -1,0 +1,93 @@
+﻿@model ARFurniture.AdminWeb.Models.ProductFormViewModel
+@{
+    ViewData["Title"] = "Thêm Sản Phẩm Mới";
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Thêm Sản Phẩm Mới</h6>
+        </div>
+        <div class="card-body">
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger">@ViewBag.Error</div>
+            }
+
+            <form asp-action="Create" method="post">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="font-weight-bold">Tên sản phẩm</label>
+                        <input asp-for="Name" class="form-control" required placeholder="Nhập tên..." />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="font-weight-bold">Danh mục</label>
+                        <select asp-for="CategoryId" class="form-control" required>
+                            <option value="">-- Chọn Danh mục --</option>
+                            @foreach (var cat in Model.Categories)
+                            {
+                                <option value="@cat.Id">@cat.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="font-weight-bold">Giá bán (VNĐ)</label>
+                        <input asp-for="Price" type="number" class="form-control" required />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="font-weight-bold">Giảm giá (%)</label>
+                        <input asp-for="Discount" type="number" class="form-control" value="0" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="font-weight-bold">Tồn kho</label>
+                        <input asp-for="StockQuantity" type="number" class="form-control" value="100" />
+                    </div>
+                    <div class="col-md-12 mb-3" id="sizeInputWrapper" style="display: none;">
+                        <label class="font-weight-bold text-success">Các loại Size giày (Cú pháp: Size:Số lượng)</label>
+                        <input asp-for="Sizes" id="Sizes" class="form-control" placeholder="Ví dụ: 39:10, 40:0, 41:5, 42:20" />
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="font-weight-bold">Tên File Ảnh (vd: shoes1.jpg)</label>
+                        <input asp-for="ImageUrl" class="form-control" placeholder="Nhập tên file ảnh đã có trong thư mục images..." />
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="font-weight-bold">Mô tả sản phẩm</label>
+                        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Lưu Sản Phẩm</button>
+                <a asp-action="Index" class="btn btn-secondary ml-2">Hủy bỏ</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            
+            // Hàm kiểm tra danh mục để ẩn/hiện
+            function toggleSizeInput() {
+                // Lấy TÊN của danh mục đang được chọn
+                var selectedText = $("#CategoryId option:selected").text().toLowerCase();
+
+                // Kiểm tra xem tên danh mục có chứa chữ "giày" không (bạn có thể thêm các từ khóa khác nếu muốn)
+                if (selectedText.includes("giày") || selectedText.includes("giay")) {
+                    $("#sizeInputWrapper").slideDown(); // Hiện ra từ từ rất mượt
+                } else {
+                    $("#sizeInputWrapper").slideUp();   // Cuộn ẩn đi
+                    $("#Sizes").val("");                // Xóa trắng ô size để tránh lưu rác vào Database
+                }
+            }
+
+            // Gọi hàm 1 lần khi trang vừa load xong
+            toggleSizeInput();
+
+            // Lắng nghe sự kiện: Mỗi khi người dùng bấm chọn danh mục khác
+            $("#CategoryId").change(function () {
+                toggleSizeInput();
+            });
+            
+        });
+    </script>
+}

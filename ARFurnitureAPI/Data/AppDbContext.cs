@@ -15,5 +15,8 @@ namespace ARFurnitureAPI.Data
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<UserAddress> UserAddresses { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderDetail> OrderDetails { get; set; }
+        public DbSet<ProductSize> ProductSizes { get; set; }
     }
 }

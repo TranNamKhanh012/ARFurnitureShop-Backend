@@ -17,29 +17,37 @@ public class PaymentController : ControllerBase
     [HttpGet("get-vnpay-url")]
     public IActionResult GetVnpayUrl([FromQuery] double amount)
     {
-        var vnpay = new VnPayLibrary(); // Sử dụng lớp tiện ích trong Utils
+        try
+        {
+            var vnpay = new VnPayLibrary();
 
-        vnpay.AddRequestData("vnp_Version", "2.1.0");
-        vnpay.AddRequestData("vnp_Command", "pay");
-        vnpay.AddRequestData("vnp_TmnCode", vnp_TmnCode); // ĐÃ SỬA: Dùng biến ở trên
-        vnpay.AddRequestData("vnp_Amount", (amount * 100).ToString()); // VNPAY nhân 100
-                                                                       // Lấy giờ Việt Nam chuẩn bất kể Server đặt ở đâu
-        TimeZoneInfo vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-        DateTime vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone);
+            vnpay.AddRequestData("vnp_Version", "2.1.0");
+            vnpay.AddRequestData("vnp_Command", "pay");
+            vnpay.AddRequestData("vnp_TmnCode", vnp_TmnCode);
 
-        vnpay.AddRequestData("vnp_CreateDate", vietnamNow.ToString("yyyyMMddHHmmss"));
-        vnpay.AddRequestData("vnp_CurrCode", "VND");
-        vnpay.AddRequestData("vnp_IpAddr", "127.0.0.1");
-        vnpay.AddRequestData("vnp_Locale", "vn");
-        vnpay.AddRequestData("vnp_OrderInfo", "Thanh_toan_don_hang_Accessories");
-        vnpay.AddRequestData("vnp_OrderType", "other");
-        vnpay.AddRequestData("vnp_ReturnUrl", "http://trannamkhanh-001-site1.jtempurl.com/api/Payment/PaymentCallback");
-        vnpay.AddRequestData("vnp_TxnRef", DateTime.Now.Ticks.ToString());
+            long vnpAmount = (long)(amount * 100);
+            vnpay.AddRequestData("vnp_Amount", vnpAmount.ToString());
 
-        // ĐÃ SỬA: Dùng biến vnp_HashSecret ở trên để băm dữ liệu
-        string paymentUrl = vnpay.CreateRequestUrl(vnp_Url, vnp_HashSecret);
+            DateTime vietnamNow = DateTime.UtcNow.AddHours(7);
 
-        return Content(paymentUrl, "text/plain");
+            vnpay.AddRequestData("vnp_CreateDate", vietnamNow.ToString("yyyyMMddHHmmss"));
+            vnpay.AddRequestData("vnp_CurrCode", "VND");
+            vnpay.AddRequestData("vnp_IpAddr", "127.0.0.1");
+            vnpay.AddRequestData("vnp_Locale", "vn");
+            vnpay.AddRequestData("vnp_OrderInfo", "Thanh_toan_don_hang_Accessories");
+            vnpay.AddRequestData("vnp_OrderType", "other");
+            vnpay.AddRequestData("vnp_ReturnUrl", "http://trannamkhanh-001-site1.jtempurl.com/api/Payment/PaymentCallback");
+            vnpay.AddRequestData("vnp_TxnRef", vietnamNow.Ticks.ToString());
+
+            string paymentUrl = vnpay.CreateRequestUrl(vnp_Url, vnp_HashSecret);
+
+            return Content(paymentUrl, "text/plain");
+        }
+        catch (Exception ex)
+        {
+            // Nếu có lỗi, nó sẽ không báo 500 nữa mà sẽ in rõ dòng chữ này ra!
+            return StatusCode(500, "Lỗi chi tiết: " + ex.Message + " | Dòng lỗi: " + ex.StackTrace);
+        }
     }
 
     [HttpGet("PaymentCallback")]

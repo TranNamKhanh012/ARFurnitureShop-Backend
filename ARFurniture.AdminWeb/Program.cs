@@ -1,8 +1,20 @@
 ﻿var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddHttpClient();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 // Cấu hình HttpClient gọi sang Project API (Cổng 5103)
+builder.Services.AddHttpClient(Microsoft.Extensions.Options.Options.DefaultName, client =>
+{
+    var baseUrl = builder.Configuration.GetSection("ApiSettings:BaseUrl").Value;
+    // Nếu quên chưa cấu hình thì báo lỗi rõ ràng luôn cho dễ sửa
+    if (string.IsNullOrEmpty(baseUrl))
+    {
+        throw new Exception("Chưa cấu hình ApiSettings:BaseUrl trong appsettings.json!");
+    }
+
+    client.BaseAddress = new Uri(baseUrl);
+});
 builder.Services.AddHttpClient("ApiClient", client =>
 {
     // ĐÃ SỬA: Điền chính xác cổng của API vào đây (Nhớ kiểm tra kỹ là http hay https nhé)

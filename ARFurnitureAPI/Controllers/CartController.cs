@@ -4,68 +4,81 @@ using ARFurnitureAPI.Models;
 using ARFurnitureAPI.Data;
 using System.Linq;
 
-[Route("api/[controller]")]
-[ApiController]
-public class CartController : ControllerBase
+namespace ARFurnitureAPI.Controllers
 {
-    private readonly AppDbContext _context;
-
-    public CartController(AppDbContext context)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class CartController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly AppDbContext _context;
 
-    // ==========================================
-    // 1. LẤY GIỎ HÀNG THEO USER ID
-    // ==========================================
-    [HttpGet("{userId}")]
-    public IActionResult GetCart(int userId)
-    {
-        // Chỉ lấy những sản phẩm nằm trong giỏ của đúng người dùng này
-        var cart = _context.CartItems
-                           .Include(c => c.Product)
-                           .Where(c => c.UserId == userId)
-                           .ToList();
-        return Ok(cart);
-    }
-
-    // ==========================================
-    // 2. THÊM VÀO GIỎ HÀNG (Kèm UserId)
-    // ==========================================
-    [HttpPost("{userId}/{productId}")]
-    public IActionResult AddToCart(int userId, int productId)
-    {
-        // Tìm xem TRONG GIỎ CỦA USER NÀY đã có sản phẩm này chưa
-        var item = _context.CartItems.FirstOrDefault(c => c.UserId == userId && c.ProductId == productId);
-
-        if (item == null)
+        public CartController(AppDbContext context)
         {
-            // Chưa có thì thêm mới (nhớ gán UserId vào)
-            _context.CartItems.Add(new CartItem { UserId = userId, ProductId = productId, Quantity = 1 });
+            _context = context;
         }
-        else
+
+        // ==========================================
+        // 1. LẤY GIỎ HÀNG THEO USER ID
+        // ==========================================
+        [HttpGet("{userId}")]
+        public IActionResult GetCart(int userId)
         {
-            // Có rồi thì cộng dồn số lượng
-            item.Quantity += 1;
+            var cart = _context.CartItems
+                               .Include(c => c.Product)
+                               .Where(c => c.UserId == userId)
+                               .ToList();
+            return Ok(cart);
         }
-        _context.SaveChanges();
-        return Ok();
-    }
 
-    // ==========================================
-    // 3. XÓA KHỎI GIỎ HÀNG (Kèm UserId)
-    // ==========================================
-    [HttpDelete("{userId}/{productId}")]
-    public IActionResult RemoveFromCart(int userId, int productId)
-    {
-        // Tìm đúng sản phẩm trong giỏ của đúng user để xóa
-        var item = _context.CartItems.FirstOrDefault(c => c.UserId == userId && c.ProductId == productId);
-
-        if (item != null)
+        // ==========================================
+        // 2. THÊM VÀO GIỎ HÀNG (Nhận chuẩn Số lượng & Size)
+        // ==========================================
+        [HttpPost("add")]
+        public IActionResult AddToCart([FromQuery] int userId, [FromQuery] int productId, [FromQuery] int quantity, [FromQuery] string? selectedSize = "")
         {
-            _context.CartItems.Remove(item);
+            // Kiểm tra xem giỏ đã có đúng SẢN PHẨM này và đúng SIZE này chưa
+            var item = _context.CartItems.FirstOrDefault(c =>
+                c.UserId == userId &&
+                c.ProductId == productId &&
+                c.SelectedSize == selectedSize);
+
+            if (item == null)
+            {
+                _context.CartItems.Add(new CartItem
+                {
+                    UserId = userId,
+                    ProductId = productId,
+                    Quantity = quantity,
+                    SelectedSize = selectedSize
+                });
+            }
+            else
+            {
+                // Có rồi thì cộng dồn số lượng khách vừa chọn thêm
+                item.Quantity += quantity;
+            }
+
             _context.SaveChanges();
+            return Ok();
         }
-        return Ok();
+
+        // ==========================================
+        // 3. XÓA KHỎI GIỎ HÀNG (Chỉ xóa đúng Size được chọn)
+        // ==========================================
+        [HttpDelete("remove")]
+        public IActionResult RemoveFromCart([FromQuery] int userId, [FromQuery] int productId, [FromQuery] string? selectedSize = "")
+        {
+            var item = _context.CartItems.FirstOrDefault(c =>
+                c.UserId == userId &&
+                c.ProductId == productId &&
+                c.SelectedSize == selectedSize);
+
+            if (item != null)
+            {
+                _context.CartItems.Remove(item);
+                _context.SaveChanges();
+            }
+            return Ok();
+        }
     }
 }

@@ -1,6 +1,8 @@
-﻿using ARFurniture.AdminWeb.Models;
-using Microsoft.AspNetCore.Mvc;
-using System.Net.Http.Json;
+﻿using Microsoft.AspNetCore.Mvc;
+using ARFurniture.AdminWeb.Models;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace ARFurniture.AdminWeb.Controllers
 {
@@ -8,47 +10,34 @@ namespace ARFurniture.AdminWeb.Controllers
     {
         private readonly HttpClient _httpClient;
 
-        // Tiêm IHttpClientFactory vào để tạo Client
-        public HomeController(IHttpClientFactory httpClientFactory)
+        public HomeController(HttpClient httpClient)
         {
-            _httpClient = httpClientFactory.CreateClient("ApiClient"); // Sử dụng cấu hình đã tạo ở Program.cs
+            _httpClient = httpClient;
         }
 
         public async Task<IActionResult> Index()
         {
-            // Tạo một model trống với dữ liệu mặc định (để nếu API lỗi thì Web vẫn chạy)
-            var model = new DashboardViewModel
-            {
-                TotalProducts = 0,
-                TotalOrders = 0,
-                TotalUsers = 0,
-                RevenueToday = 0
-            };
+            var model = new DashboardViewModel();
 
             try
             {
-                // Dùng HttpClient gọi sang đường dẫn API thật
-                var response = await _httpClient.GetAsync("api/Dashboard/summary");
+                // Nhớ đổi PORT 5186 thành cổng API Localhost của bạn nhé!
+                var response = await _httpClient.GetAsync("http://localhost:5103/api/Dashboard/summary");
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Ép kiểu JSON trả về từ API thành Model của project WebAdmin
-                    // (Lưu ý: Tên các thuộc tính trong JSON và Model phải trùng nhau)
-                    model = await response.Content.ReadFromJsonAsync<DashboardViewModel>();
-                }
-                else
-                {
-                    // Ghi log lỗi nếu cần
-                    ViewBag.Error = "Không thể lấy dữ liệu từ API. Mã lỗi: " + response.StatusCode;
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    model = JsonSerializer.Deserialize<DashboardViewModel>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                // Nếu API chưa bật hoặc lỗi kết nối, tạm thời vẫn trả về view với dữ liệu 0
-                ViewBag.Error = "Lỗi kết nối Server API: " + ex.Message;
+                // Nếu API tắt, nó sẽ trả về 0 để không bị lỗi trang
             }
 
             return View(model);
         }
+
+        // ... các hàm khác giữ nguyên ...
     }
 }
