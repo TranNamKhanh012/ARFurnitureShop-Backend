@@ -91,5 +91,130 @@ namespace ARFurnitureAPI.Controllers
 
             return Ok(new { Message = "Đặt hàng thành công!", OrderId = newOrder.Id });
         }
+        // ==========================================
+        // API LẤY LỊCH SỬ ĐƠN HÀNG CỦA USER
+        // ==========================================
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetUserOrders(int userId)
+        {
+            var orders = await _context.Orders
+                .Where(o => o.UserId == userId)
+                .OrderByDescending(o => o.OrderDate) // Đơn mới nhất xếp lên đầu
+                .Select(o => new {
+                    o.Id,
+                    o.OrderDate,
+                    o.TotalAmount,
+                    o.OrderStatus,
+                    o.PaymentMethod,
+                    o.PaymentStatus
+                })
+                .ToListAsync();
+
+            if (orders == null || !orders.Any())
+            {
+                return NotFound(new { message = "Bạn chưa có đơn hàng nào." });
+            }
+
+            return Ok(orders);
+        }
+        // Dto nhỏ để nhận dữ liệu trạng thái
+        public class UpdateStatusDto
+        {
+            public string Status { get; set; }
+        }
+
+        // 1. API Lấy toàn bộ danh sách đơn hàng cho Admin
+        [HttpGet("admin-list")]
+        public async Task<IActionResult> GetAdminOrders()
+        {
+            var orders = await _context.Orders
+                .OrderByDescending(o => o.OrderDate)
+                .Select(o => new {
+                    o.Id,
+                    o.ReceiverName,
+                    o.PhoneNumber,
+                    o.ShippingAddress,
+                    o.TotalAmount,
+                    o.OrderDate,
+                    o.OrderStatus,
+                    o.PaymentMethod
+                }).ToListAsync();
+
+            return Ok(orders);
+        }
+
+        // 2. API Cập nhật trạng thái đơn hàng (Pending -> Shipping -> Completed)
+        [HttpPut("admin-update-status/{id}")]
+        public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateStatusDto request)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound(new { message = "Không tìm thấy đơn hàng" });
+
+            order.OrderStatus = request.Status;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Cập nhật trạng thái thành công" });
+        }
+        // 3. API Lấy chi tiết 1 đơn hàng (Bao gồm danh sách sản phẩm)
+        [HttpGet("admin-get/{id}")]
+        public async Task<IActionResult> GetAdminOrderDetail(int id)
+        {
+            // Lấy thông tin hóa đơn và nối (Join) với bảng OrderDetails và Products
+            var order = await _context.Orders
+                .Where(o => o.Id == id)
+                .Select(o => new {
+                    o.Id,
+                    o.ReceiverName,
+                    o.PhoneNumber,
+                    o.ShippingAddress,
+                    o.TotalAmount,
+                    o.OrderDate,
+                    o.OrderStatus,
+                    o.PaymentMethod,
+                    o.PaymentStatus,
+                    // Lấy danh sách các món đồ trong đơn hàng này
+                    Items = _context.OrderDetails
+                        .Where(od => od.OrderId == o.Id)
+                        .Select(od => new {
+                            od.ProductId,
+                            ProductName = _context.Products.FirstOrDefault(p => p.Id == od.ProductId).Name,
+                            ProductImage = _context.Products.FirstOrDefault(p => p.Id == od.ProductId).ImageUrl,
+                            od.Quantity,
+                            od.UnitPrice,
+                            od.SelectedSize
+                        }).ToList()
+                }).FirstOrDefaultAsync();
+
+            if (order == null) return NotFound(new { message = "Không tìm thấy đơn hàng!" });
+
+            return Ok(order);
+        }
+        // ==========================================
+        // KHÁCH HÀNG XÁC NHẬN ĐÃ NHẬN HÀNG
+        // ==========================================
+        [HttpPut("user-confirm/{id}")]
+        public async Task<IActionResult> UserConfirmOrder(int id)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound(new { message = "Không tìm thấy đơn hàng" });
+
+            if (!order.OrderStatus.Equals("Shipping", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { message = "Chỉ có thể xác nhận khi đơn hàng đang được giao." });
+            }
+
+            // Chuyển trạng thái thành Hoàn thành
+            order.OrderStatus = "Completed";
+
+            // Nếu khách chọn COD (Thanh toán khi nhận hàng), thì nhận hàng xong coi như đã trả tiền
+            if (order.PaymentMethod == "COD")
+            {
+                order.PaymentStatus = "Paid";
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Xác nhận nhận hàng thành công!" });
+        }
     }
 }

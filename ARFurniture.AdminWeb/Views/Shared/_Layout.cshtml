@@ -87,9 +87,21 @@
                     </a>
                 </li>
 
-                <li><a href="#"><i class="fas fa-tags"></i> Quản lý Danh mục</a></li>
-                <li><a href="#"><i class="fas fa-users"></i> Quản lý Người dùng</a></li>
-                <li><a href="#"><i class="fas fa-file-invoice-dollar"></i> Quản lý Đơn hàng</a></li>
+                <li>
+                    <a asp-controller="Category" asp-action="Index" class="@(currentController == "Category" ? "active" : "")">
+                        <i class="fas fa-tags"></i> Quản lý Danh mục
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="User" asp-action="Index" class="@(currentController == "User" ? "active" : "")">
+                        <i class="fas fa-users"></i> Quản lý Người dùng
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Order" asp-action="Index" class="@(currentController == "Order" ? "active" : "")">
+                        <i class="fas fa-file-invoice-dollar"></i> Quản lý Đơn hàng
+                    </a>
+                </li>
                 <li><a href="#"><i class="fas fa-newspaper"></i> Quản lý Bài viết</a></li>
                 <li><a href="#"><i class="fas fa-comments"></i> Quản lý Phản hồi</a></li>
                 <li><a href="#"><i class="fas fa-sign-out-alt"></i> Về trang chủ</a></li>

@@ -135,12 +135,17 @@ namespace ARFurnitureAPI.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<string>("SelectedSize")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<double>("UnitPrice")
                         .HasColumnType("float");
 
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("ProductId");
 
                     b.ToTable("OrderDetails");
                 });
@@ -216,6 +221,39 @@ namespace ARFurnitureAPI.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ProductSizes");
+                });
+
+            modelBuilder.Entity("ARFurnitureAPI.Models.Review", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("ARFurnitureAPI.Models.User", b =>
@@ -316,11 +354,21 @@ namespace ARFurnitureAPI.Migrations
 
             modelBuilder.Entity("ARFurnitureAPI.Models.OrderDetail", b =>
                 {
-                    b.HasOne("ARFurnitureAPI.Models.Order", null)
+                    b.HasOne("ARFurnitureAPI.Models.Order", "Order")
                         .WithMany("OrderDetails")
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("ARFurnitureAPI.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("ARFurnitureAPI.Models.Product", b =>

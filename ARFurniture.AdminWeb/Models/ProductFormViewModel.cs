@@ -18,9 +18,4 @@ namespace ARFurniture.AdminWeb.Models
         public List<CategoryViewModel> Categories { get; set; } = new List<CategoryViewModel>();
     }
 
-    public class CategoryViewModel
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-    }
 }

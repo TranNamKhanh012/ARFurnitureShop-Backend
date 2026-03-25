@@ -40,10 +40,8 @@ public class AuthController : ControllerBase
     // 2. API ĐĂNG NHẬP (LOGIN)
     // ==========================================
     [HttpPost("login")]
-    // Đổi [FromBody] User thành [FromBody] LoginDto
     public IActionResult Login([FromBody] LoginDto request)
     {
-        // Sửa lại các biến bên trong cho khớp với request mới
         var user = _context.Users.SingleOrDefault(u => u.Username == request.Username && u.Password == request.Password);
 
         if (user == null)
@@ -51,6 +49,7 @@ public class AuthController : ControllerBase
             return BadRequest("Sai tài khoản hoặc mật khẩu");
         }
 
+        // PHẢI TRẢ VỀ ĐỐI TƯỢNG 'user' (Lấy từ Database, có chứa Id, FullName, Role)
         return Ok(user);
     }
 
@@ -162,5 +161,43 @@ public class AuthController : ControllerBase
     {
         public string OldPassword { get; set; }
         public string NewPassword { get; set; }
+    }
+    // ==========================================
+    // 6. API Lấy danh sách tất cả người dùng (Cho Admin)
+    // ==========================================
+    [HttpGet("admin-list")]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        // Lấy toàn bộ user nhưng không trả về cột Password để bảo mật
+        var users = await _context.Users.Select(u => new {
+            u.Id,
+            u.Username,
+            u.FullName,
+            u.Email,
+            u.Role
+        }).ToListAsync();
+
+        return Ok(users);
+    }
+
+    // DTO để hứng dữ liệu đổi quyền
+    public class ChangeRoleDto
+    {
+        public string Role { get; set; }
+    }
+
+    // ==========================================
+    // 7. API Thay đổi quyền (User <-> Admin)
+    // ==========================================
+    [HttpPut("admin-change-role/{id}")]
+    public async Task<IActionResult> ChangeUserRole(int id, [FromBody] ChangeRoleDto request)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user == null) return NotFound(new { message = "Không tìm thấy người dùng." });
+
+        user.Role = request.Role;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Cập nhật quyền thành công!" });
     }
 }
