@@ -4,9 +4,11 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ARFurniture.AdminWeb.Controllers
 {
+    [Authorize]
     public class CategoryController : Controller
     {
         private readonly HttpClient _httpClient;

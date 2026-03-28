@@ -5,9 +5,11 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ARFurniture.AdminWeb.Controllers
 {
+    [Authorize]
     public class ProductController : Controller
     {
         private readonly HttpClient _httpClient;

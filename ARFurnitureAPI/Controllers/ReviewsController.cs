@@ -75,5 +75,57 @@ namespace ARFurnitureAPI.Controllers
                 .ToListAsync();
             return Ok(reviews);
         }
+
+        // ==========================================
+        // 4. LẤY TOÀN BỘ ĐÁNH GIÁ (Cho Admin Web)
+        // ==========================================
+        [HttpGet("admin-list")]
+        public async Task<IActionResult> GetAllReviewsAdmin()
+        {
+            // Dùng LINQ Join trực tiếp bảng Reviews và Products thông qua ProductId
+            var reviews = await (from r in _context.Reviews
+                                 join p in _context.Products on r.ProductId equals p.Id
+                                 orderby r.CreatedAt descending
+                                 select new
+                                 {
+                                     Id = r.Id,
+                                     ProductName = p.Name,       // Lấy tên sản phẩm từ bảng p
+                                     FullName = r.FullName,
+                                     Rating = r.Rating,
+                                     Comment = r.Comment,
+                                     CreatedAt = r.CreatedAt
+                                 }).ToListAsync();
+
+            return Ok(reviews);
+        }
+
+        // ==========================================
+        // 5. ADMIN XÓA BÌNH LUẬN RÁC
+        // ==========================================
+        [HttpDelete("admin-delete/{id}")]
+        public async Task<IActionResult> DeleteReviewAdmin(int id)
+        {
+            var review = await _context.Reviews.FindAsync(id);
+            if (review == null) return NotFound("Không tìm thấy đánh giá.");
+
+            var productId = review.ProductId;
+
+            // Xóa đánh giá
+            _context.Reviews.Remove(review);
+            await _context.SaveChangesAsync();
+
+            // QUAN TRỌNG: Cập nhật lại số Sao và Lượt đánh giá của Sản phẩm sau khi xóa
+            var product = await _context.Products.FindAsync(productId);
+            if (product != null)
+            {
+                var remainingReviews = await _context.Reviews.Where(r => r.ProductId == productId).ToListAsync();
+                product.ReviewCount = remainingReviews.Count;
+                // Nếu xóa hết sạch review rồi thì set rating về 0
+                product.Rating = remainingReviews.Any() ? Math.Round(remainingReviews.Average(r => r.Rating), 1) : 0;
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new { message = "Xóa đánh giá thành công!" });
+        }
     }
 }

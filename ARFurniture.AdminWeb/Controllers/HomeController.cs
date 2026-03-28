@@ -3,9 +3,11 @@ using ARFurniture.AdminWeb.Models;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ARFurniture.AdminWeb.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
         private readonly HttpClient _httpClient;

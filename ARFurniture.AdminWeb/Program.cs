@@ -1,8 +1,20 @@
-﻿var builder = WebApplication.CreateBuilder(args);
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpClient();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+
+// 1. CẤU HÌNH COOKIE ĐĂNG NHẬP (THÊM VÀO ĐÂY)
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/Login"; // Đẩy về trang này nếu chưa đăng nhập
+        options.LogoutPath = "/Auth/Logout";
+        options.ExpireTimeSpan = TimeSpan.FromDays(1); // Giữ đăng nhập 1 ngày
+    });
+
 // Cấu hình HttpClient gọi sang Project API (Cổng 5103)
 builder.Services.AddHttpClient(Microsoft.Extensions.Options.Options.DefaultName, client =>
 {
@@ -40,6 +52,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
