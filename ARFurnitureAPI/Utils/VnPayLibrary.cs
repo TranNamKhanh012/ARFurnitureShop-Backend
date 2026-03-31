@@ -28,8 +28,8 @@ namespace ARFurnitureAPI.Utils
             {
                 if (!string.IsNullOrEmpty(kv.Value))
                 {
-                    // ĐÃ SỬA: Dùng Uri.EscapeDataString thay cho WebUtility.UrlEncode
-                    data.Append(Uri.EscapeDataString(kv.Key) + "=" + Uri.EscapeDataString(kv.Value) + "&");
+                    // TRẢ LẠI CHUẨN MÃ HÓA CỦA VNPAY
+                    data.Append(WebUtility.UrlEncode(kv.Key) + "=" + WebUtility.UrlEncode(kv.Value) + "&");
                 }
             }
 

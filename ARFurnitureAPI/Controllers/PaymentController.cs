@@ -11,7 +11,7 @@ public class PaymentController : ControllerBase
 {
     // CÁC THÔNG SỐ TEST CỦA VNPAY SANDBOX
     private string vnp_TmnCode = "FV1ISYBO";
-    private string vnp_HashSecret = "VGXDWXWGQ9Y5BKJF35HPMJEJSXLTSZKN";
+    private string vnp_HashSecret = "L7WLH70YOJLDSZJLXDA8DLJM0XCSNB46";
     private string vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
 
     [HttpGet("get-vnpay-url")]
