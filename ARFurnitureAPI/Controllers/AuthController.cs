@@ -200,4 +200,29 @@ public class AuthController : ControllerBase
 
         return Ok(new { message = "Cập nhật quyền thành công!" });
     }
+    // ==========================================
+    // 8. API QUÊN MẬT KHẨU (Reset Password)
+    // ==========================================
+    [HttpPost("forgot-password")]
+    public IActionResult ForgotPassword([FromBody] ForgotPasswordDto request)
+    {
+        // 1. Tìm xem trong hệ thống có ai dùng Email này không
+        var user = _context.Users.FirstOrDefault(u => u.Email == request.Email);
+        if (user == null)
+        {
+            return BadRequest(new { message = "Email này chưa được đăng ký trong hệ thống!" });
+        }
+
+        // 2. Demo cho đồ án: Tự động cấp lại mật khẩu mặc định
+        user.Password = "123456";
+        _context.SaveChanges();
+
+        return Ok(new { message = "Mật khẩu của bạn đã được đặt lại thành: 123456. Vui lòng đăng nhập và đổi lại mật khẩu ngay nhé!" });
+    }
+
+    // Class hứng dữ liệu Email gửi lên
+    public class ForgotPasswordDto
+    {
+        public string Email { get; set; }
+    }
 }
