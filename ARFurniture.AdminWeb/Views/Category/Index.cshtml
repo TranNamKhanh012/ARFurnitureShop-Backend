@@ -7,6 +7,20 @@
     <h2>Quản lý Danh mục</h2>
     <a asp-action="Create" class="btn btn-primary"><i class="fas fa-plus"></i> Thêm danh mục mới</a>
 </div>
+<div class="mb-4">
+    <form asp-action="Index" method="get" class="form-inline d-flex">
+        <div class="input-group w-50">
+            <input type="text" name="searchQuery" value="@ViewBag.SearchQuery" class="form-control" placeholder="Tìm theo tên danh mục...">
+            <button class="btn btn-primary" type="submit">
+                <i class="fas fa-search"></i> Tìm kiếm
+            </button>
+            @if (!string.IsNullOrEmpty(ViewBag.SearchQuery))
+            {
+                <a asp-action="Index" class="btn btn-secondary ms-1" title="Xóa tìm kiếm">Xóa</a>
+            }
+        </div>
+    </form>
+</div>
 
 <div class="card shadow-sm">
     <div class="card-body">
@@ -28,7 +42,7 @@
                         <td>
                             @if (!string.IsNullOrEmpty(item.ImageUrl))
                             {
-                                <img src="http://localhost:5103/images/@item.ImageUrl" alt="@item.Name" style="width: 50px; height: 50px; object-fit: cover;" class="rounded shadow-sm" />
+                                <img src="http://trannamkhanh-001-site1.jtempurl.com/@item.ImageUrl" alt="@item.Name" style="width: 50px; height: 50px; object-fit: cover;" class="rounded shadow-sm" />
                             }
                             else
                             {

@@ -1,87 +1,120 @@
 ﻿@model IEnumerable<ARFurniture.AdminWeb.Models.AdminProductViewModel>
 
 @{
-    ViewData["Title"] = "Danh sách Sản phẩm";
+    ViewData["Title"] = "Quản lý Sản phẩm";
 }
 
-<div class="container-fluid mt-4">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800 font-weight-bold">Danh sách Sản phẩm</h1>
-    </div>
-    @if (ViewBag.Error != null)
-    {
-        <div class="alert alert-danger">@ViewBag.Error</div>
-    }
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Quản lý Sản phẩm</h2>
+    <a asp-action="Create" class="btn btn-primary"><i class="fas fa-plus"></i> Thêm sản phẩm mới</a>
+</div>
 
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-white">
-            <form class="d-none d-sm-inline-block form-inline mr-auto my-2 my-md-0 mw-100">
-                <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Tìm theo tên sản phẩm..." style="min-width: 250px;">
-                    <div class="input-group-append">
-                        <button class="btn btn-primary" type="button">
-                            Tìm kiếm
-                        </button>
-                    </div>
-                </div>
-            </form>
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger mb-4">@ViewBag.Error</div>
+}
 
-            <a asp-action="Create" class="btn btn-success shadow-sm font-weight-bold">
-                + Thêm Sản phẩm mới
-            </a>
+<div class="mb-4">
+    <form asp-action="Index" method="get" class="form-inline d-flex">
+        <div class="input-group w-50">
+            <input type="text" name="searchQuery" value="@ViewBag.SearchQuery" class="form-control" placeholder="Tìm theo tên sản phẩm...">
+            <button class="btn btn-primary" type="submit">
+                <i class="fas fa-search"></i> Tìm kiếm
+            </button>
+            @if (!string.IsNullOrEmpty(ViewBag.SearchQuery))
+            {
+                <a asp-action="Index" class="btn btn-secondary ms-1" title="Xóa tìm kiếm">Xóa</a>
+            }
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-bordered mb-0" width="100%" cellspacing="0">
-                    <thead class="bg-light text-dark">
-                        <tr>
-                            <th class="text-center align-middle" style="width: 5%;">ID</th>
-                            <th class="text-center align-middle" style="width: 10%;">Ảnh</th>
-                            <th class="align-middle">Tên sản phẩm</th>
-                            <th class="text-right align-middle" style="width: 12%;">Giá bán</th>
-                            <th class="text-right align-middle" style="width: 12%;">Giá gốc</th>
-                            <th class="text-center align-middle" style="width: 10%;">Tồn kho</th>
-                            <th class="text-center align-middle" style="width: 10%;">Đã bán</th>
-                            <th class="text-center align-middle" style="width: 10%;">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model != null && Model.Any())
-                        {
-                            foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td class="text-center align-middle">@item.Id</td>
-                                    <td class="text-center align-middle">
-                                        <img src="http://localhost:5103/images/@item.ImageUrl" alt="@item.Name"
-                                             style="width: 50px; height: 65px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;" />
-                                    </td>
-                                    <td class="align-middle font-weight-bold text-secondary">@item.Name</td>
-                                    <td class="text-right align-middle text-danger font-weight-bold">@item.SellingPrice.ToString("N0")đ</td>
-                                    <td class="text-right align-middle text-muted">@item.OriginalPrice.ToString("N0")đ</td>
-                                    <td class="text-center align-middle">@item.StockQuantity</td>
-                                    <td class="text-center align-middle">@item.SoldQuantity</td>
-                                    <td class="text-center align-middle">
-                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="Sửa">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger ml-1" title="Xóa"
-                                           onclick="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này không? Dữ liệu không thể khôi phục!');">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
+    </form>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 5%;">ID</th>
+                        <th class="text-center" style="width: 10%;">Ảnh</th>
+                        <th>Tên sản phẩm</th>
+                        <th class="text-end" style="width: 12%;">Giá bán</th>
+                        <th class="text-end" style="width: 12%;">Giá gốc</th>
+                        <th class="text-center" style="width: 15%;">Hàng trong kho</th>
+                        <th class="text-center" style="width: 10%;">Đã bán</th>
+                        <th class="text-end" style="width: 15%;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
                         {
                             <tr>
-                                <td colspan="8" class="text-center py-4">Không có dữ liệu sản phẩm nào.</td>
+                                <td><strong>#@item.Id</strong></td>
+                                <td class="text-center">
+                                    @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                    {
+                                        <img src="http://trannamkhanh-001-site1.jtempurl.com/images/@item.ImageUrl" alt="@item.Name"
+                                             style="width: 50px; height: 65px; object-fit: cover;" class="rounded shadow-sm" />
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Không có ảnh</span>
+                                    }
+                                </td>
+                                <td class="fw-bold text-secondary">@item.Name</td>
+                                <td class="text-end text-danger fw-bold">@item.SellingPrice.ToString("N0")đ</td>
+                                <td class="text-end text-muted">@item.OriginalPrice.ToString("N0")đ</td>
+                                <td class="text-center">@item.StockQuantity</td>
+                                <td class="text-center">@item.SoldQuantity</td>
+                                <td class="text-end">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i> Sửa
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger ms-1"
+                                       onclick="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này không? Dữ liệu không thể khôi phục!');">
+                                        <i class="fas fa-trash"></i> Xóa
+                                    </a>
+                                </td>
                             </tr>
                         }
-                    </tbody>
-                </table>
-            </div>
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">Không có dữ liệu sản phẩm nào.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
+        @if (ViewBag.TotalPages != null && ViewBag.TotalPages > 1)
+        {
+            <div class="d-flex justify-content-center mt-4">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination shadow-sm">
+                        <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@(ViewBag.CurrentPage - 1)" asp-route-searchQuery="@ViewBag.SearchQuery">
+                                <i class="fas fa-chevron-left"></i> Trước
+                            </a>
+                        </li>
+
+                        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                        {
+                            <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                                <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-searchQuery="@ViewBag.SearchQuery">@i</a>
+                            </li>
+                        }
+
+                        <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@(ViewBag.CurrentPage + 1)" asp-route-searchQuery="@ViewBag.SearchQuery">
+                                Sau <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
     </div>
 </div>

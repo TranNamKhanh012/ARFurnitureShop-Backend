@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 
 namespace ARFurniture.AdminWeb.Controllers
@@ -18,17 +19,25 @@ namespace ARFurniture.AdminWeb.Controllers
             _httpClient = httpClient;
         }
 
-        // --- HIỂN THỊ DANH SÁCH ---
-        public async Task<IActionResult> Index()
+     
+        public async Task<IActionResult> Index(string searchQuery)
         {
             var model = new List<CategoryViewModel>();
-            var response = await _httpClient.GetAsync("Categories"); // Gọi API GetCategories cũ của bạn
+            var response = await _httpClient.GetAsync("Categories");
 
             if (response.IsSuccessStatusCode)
             {
                 var jsonString = await response.Content.ReadAsStringAsync();
                 model = JsonSerializer.Deserialize<List<CategoryViewModel>>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                // Lọc theo tên danh mục
+                if (!string.IsNullOrEmpty(searchQuery))
+                {
+                    model = model.Where(c => c.Name != null && c.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
             }
+
+            ViewBag.SearchQuery = searchQuery;
             return View(model);
         }
 

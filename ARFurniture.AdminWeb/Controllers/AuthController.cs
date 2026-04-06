@@ -65,10 +65,12 @@ namespace ARFurniture.AdminWeb.Controllers
 
                 await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
-                return RedirectToAction("Index", "Home"); // Đăng nhập thành công, vào trang chủ
+                return RedirectToAction("Index", "Home");
             }
 
-            ViewBag.Error = "Tên đăng nhập hoặc mật khẩu không chính xác!";
+            // SỬA ĐOẠN NÀY: Bắt và hiển thị chính xác lỗi từ API trả về thay vì báo sai tài khoản
+            var errorDetail = await response.Content.ReadAsStringAsync();
+            ViewBag.Error = $"Lỗi từ API ({response.StatusCode}): {errorDetail}";
             return View(model);
         }
 

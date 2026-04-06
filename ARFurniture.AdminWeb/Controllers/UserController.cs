@@ -18,8 +18,7 @@ namespace ARFurniture.AdminWeb.Controllers
             _httpClient = httpClient;
         }
 
-        // 1. Hiển thị danh sách User
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchQuery)
         {
             var model = new List<UserViewModel>();
             var response = await _httpClient.GetAsync("Auth/admin-list");
@@ -28,8 +27,19 @@ namespace ARFurniture.AdminWeb.Controllers
             {
                 var jsonString = await response.Content.ReadAsStringAsync();
                 model = JsonSerializer.Deserialize<List<UserViewModel>>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                // Lọc theo Tên đăng nhập, Họ tên hoặc Email
+                if (!string.IsNullOrEmpty(searchQuery))
+                {
+                    model = model.Where(u =>
+                        (u.Username != null && u.Username.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)) ||
+                        (u.FullName != null && u.FullName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)) ||
+                        (u.Email != null && u.Email.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+                    ).ToList();
+                }
             }
 
+            ViewBag.SearchQuery = searchQuery;
             return View(model);
         }
 

@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 
 namespace ARFurniture.AdminWeb.Controllers
@@ -19,19 +20,37 @@ namespace ARFurniture.AdminWeb.Controllers
             _httpClient = httpClient;
         }
 
-        // --- HIỂN THỊ DANH SÁCH ---
-        public async Task<IActionResult> Index()
+        // --- HIỂN THỊ DANH SÁCH & TÌM KIẾM & PHÂN TRANG ---
+        public async Task<IActionResult> Index(string searchQuery, int page = 1)
         {
+            int pageSize = 10; // Số lượng sản phẩm mỗi trang
             var model = new List<AdminProductViewModel>();
+
             try
             {
-                // Chỉ cần gọi tên API, phần link gốc đã được cấu hình tự động ở Program.cs
                 var response = await _httpClient.GetAsync("Products/admin-list");
 
                 if (response.IsSuccessStatusCode)
                 {
                     var jsonString = await response.Content.ReadAsStringAsync();
                     model = JsonSerializer.Deserialize<List<AdminProductViewModel>>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    // 1. Lọc theo tên sản phẩm nếu có từ khóa
+                    if (!string.IsNullOrEmpty(searchQuery))
+                    {
+                        model = model.Where(p => p.Name != null && p.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)).ToList();
+                    }
+
+                    // 2. Logic phân trang
+                    int totalItems = model.Count;
+                    int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+                    // Cắt lấy đúng 10 phần tử cho trang hiện tại
+                    model = model.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+                    // Lưu dữ liệu phân trang vào ViewBag để View sử dụng
+                    ViewBag.CurrentPage = page;
+                    ViewBag.TotalPages = totalPages;
                 }
                 else
                 {
@@ -43,6 +62,7 @@ namespace ARFurniture.AdminWeb.Controllers
                 ViewBag.Error = "Không thể kết nối đến API. Chi tiết: " + ex.Message;
             }
 
+            ViewBag.SearchQuery = searchQuery;
             return View(model);
         }
 
