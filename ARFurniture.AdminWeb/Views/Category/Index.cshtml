@@ -1,4 +1,9 @@
 ﻿@model IEnumerable<ARFurniture.AdminWeb.Models.CategoryViewModel>
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    // Lấy link "http://localhost:5103/api/" và cắt chữ "api/" đi để thành "http://localhost:5103/"
+    string apiUrl = Configuration.GetSection("ApiSettings:BaseUrl").Value.Replace("api/", "");
+}
 @{
     ViewData["Title"] = "Quản lý Danh mục";
 }
@@ -40,14 +45,16 @@
                     <tr>
                         <td><strong>#@item.Id</strong></td>
                         <td>
-                            @if (!string.IsNullOrEmpty(item.ImageUrl))
-                            {
-                                <img src="http://trannamkhanh-001-site1.jtempurl.com/@item.ImageUrl" alt="@item.Name" style="width: 50px; height: 50px; object-fit: cover;" class="rounded shadow-sm" />
-                            }
-                            else
-                            {
-                                <span class="text-muted">Không có ảnh</span>
-                            }
+                        <td>
+                                @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                {
+                                <img src="@(apiUrl)images/@item.ImageUrl" alt="@item.Name" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;" />
+                                }
+                                else
+                                {
+                                <span class="text-muted">Chưa có ảnh</span>
+                                }
+                        </td>
                         </td>
                         <td class="fw-bold">@item.Name</td>
                         <td>@item.Description</td>
