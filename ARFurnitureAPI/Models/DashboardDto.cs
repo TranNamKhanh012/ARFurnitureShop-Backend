@@ -13,6 +13,7 @@ namespace ARFurnitureAPI.Models
         public double TodayRevenue { get; set; } // Doanh thu hôm nay
         public double WeeklyRevenueTotal { get; set; } // Doanh thu tuần
         public double MonthlyRevenue { get; set; } // Doanh thu tháng
+        public double MonthlyTax { get; set; }
 
         // (Giữ nguyên các List Biểu đồ và Đơn hàng gần đây)
         public List<RecentOrderDto> RecentOrders { get; set; } // Thay Dto bằng ViewModel nếu ở AdminWeb

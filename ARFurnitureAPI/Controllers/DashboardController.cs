@@ -52,6 +52,11 @@ namespace ARFurnitureAPI.Controllers
                 .Where(o => o.OrderStatus != "Cancelled" && o.OrderDate.Month == currentMonth && o.OrderDate.Year == currentYear)
                 .SumAsync(o => (double?)o.TotalAmount) ?? 0;
 
+
+            var monthlyTax = monthlyRevenue * 0.015;
+
+
+
             // 5. BIỂU ĐỒ & ĐƠN HÀNG GẦN ĐÂY (Giữ nguyên logic cũ)
             var recentOrders = await _context.Orders.OrderByDescending(o => o.OrderDate).Take(5)
                 .Select(o => new RecentOrderDto { Id = o.Id, ReceiverName = o.ReceiverName, TotalAmount = o.TotalAmount, OrderStatus = o.OrderStatus, OrderDate = o.OrderDate }).ToListAsync();
@@ -73,6 +78,7 @@ namespace ARFurnitureAPI.Controllers
                 TodayRevenue = todayRevenue,
                 WeeklyRevenueTotal = weeklyRevenueTotal,
                 MonthlyRevenue = monthlyRevenue,
+                MonthlyTax = monthlyTax,
                 RecentOrders = recentOrders,
                 WeeklyRevenue = weeklyRevenueList
             });

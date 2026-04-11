@@ -15,6 +15,7 @@ namespace ARFurniture.AdminWeb.Models
         public double WeeklyRevenueTotal { get; set; }
         public double MonthlyRevenue { get; set; }
 
+        public double MonthlyTax { get; set; }
         public List<RecentOrderViewModel> RecentOrders { get; set; } = new List<RecentOrderViewModel>();
         public List<DailyRevenueViewModel> WeeklyRevenue { get; set; } = new List<DailyRevenueViewModel>();
     }

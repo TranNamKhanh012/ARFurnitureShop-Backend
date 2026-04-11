@@ -72,7 +72,7 @@ namespace ARFurnitureAPI.Controllers
         }
 
         // ==========================================
-        // API TÌM KIẾM, LỌC VÀ SẮP XẾP NÂNG CAO
+        // API TÌM KIẾM, LỌC VÀ SẮP XẾP NÂNG CAO (ĐÃ THÊM TÌM KIẾM KHÔNG DẤU)
         // ==========================================
         [HttpGet("filter-sort")]
         public async Task<IActionResult> FilterSortProducts(
@@ -82,41 +82,51 @@ namespace ARFurnitureAPI.Controllers
             [FromQuery] string? sortBy = "date_desc"
         )
         {
-            var products = _context.Products.AsQueryable();
+            // 1. Kéo danh sách về trước để xử lý chuỗi tiếng Việt dễ dàng hơn
+            var products = await _context.Products.ToListAsync();
 
+            // 2. TÌM KIẾM TƯƠNG ĐỐI (KHÔNG DẤU, KHÔNG PHÂN BIỆT HOA THƯỜNG)
             if (!string.IsNullOrWhiteSpace(query))
             {
-                query = query.ToLower();
-                products = products.Where(p => p.Name.ToLower().Contains(query) || p.Description.ToLower().Contains(query));
+                // Gọt sạch dấu từ khóa khách hàng nhập
+                string searchKeyword = RemoveVietnameseAccents(query).ToLower();
+
+                products = products.Where(p =>
+                    // Gọt dấu Tên sản phẩm trong Database để so sánh
+                    RemoveVietnameseAccents(p.Name).ToLower().Contains(searchKeyword) ||
+                    // Gọt dấu cả trong Mô tả sản phẩm
+                    (p.Description != null && RemoveVietnameseAccents(p.Description).ToLower().Contains(searchKeyword))
+                ).ToList();
             }
 
-            if (minPrice != null) products = products.Where(p => p.Price >= minPrice);
-            if (maxPrice != null) products = products.Where(p => p.Price <= maxPrice);
+            // 3. Lọc theo giá
+            if (minPrice != null) products = products.Where(p => p.Price >= minPrice.Value).ToList();
+            if (maxPrice != null) products = products.Where(p => p.Price <= maxPrice.Value).ToList();
 
+            // 4. Sắp xếp (Dựa trên giá sau khi đã tính chiết khấu)
             switch (sortBy)
             {
                 case "price_asc":
-                    products = products.OrderBy(p => p.Price - (p.Price * p.Discount / 100.0));
+                    products = products.OrderBy(p => p.Price - (p.Price * p.Discount / 100.0)).ToList();
                     break;
                 case "price_desc":
-                    products = products.OrderByDescending(p => p.Price - (p.Price * p.Discount / 100.0));
+                    products = products.OrderByDescending(p => p.Price - (p.Price * p.Discount / 100.0)).ToList();
                     break;
                 case "date_asc":
-                    products = products.OrderBy(p => p.DateAdded);
+                    products = products.OrderBy(p => p.DateAdded).ToList();
                     break;
                 case "date_desc":
-                    products = products.OrderByDescending(p => p.DateAdded);
+                    products = products.OrderByDescending(p => p.DateAdded).ToList();
                     break;
                 case "rating_desc":
-                    products = products.OrderByDescending(p => p.Rating);
+                    products = products.OrderByDescending(p => p.Rating).ToList();
                     break;
                 default:
-                    products = products.OrderByDescending(p => p.DateAdded);
+                    products = products.OrderByDescending(p => p.DateAdded).ToList();
                     break;
             }
 
-            var resultList = await products.ToListAsync();
-            return Ok(resultList);
+            return Ok(products);
         }
 
         [HttpGet("admin-list")]
@@ -268,5 +278,32 @@ namespace ARFurnitureAPI.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { Message = "Xóa thành công!" });
         }
+
+        // ===================================================
+        // HÀM TIỆN ÍCH: XÓA DẤU TIẾNG VIỆT
+        // ===================================================
+        private string RemoveVietnameseAccents(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+
+            string[] vietnameseSigns = new string[] {
+                "aAeEoOuUiIdDyY",
+                "áàạảãâấầậẩẫăắằặẳẵ", "ÁÀẠẢÃÂẤẦẬẨẪĂẮẰẶẲẴ",
+                "éèẹẻẽêếềệểễ", "ÉÈẸẺẼÊẾỀỆỂỄ",
+                "óòọỏõôốồộổỗơớờợởỡ", "ÓÒỌỎÕÔỐỒỘỔỖƠỚỜỢỞỠ",
+                "úùụủũưứừựửữ", "ÚÙỤỦŨƯỨỪỰỬỮ",
+                "íìịỉĩ", "ÍÌỊỈĨ",
+                "đ", "Đ",
+                "ýỳỵỷỹ", "ÝỲỴỶỸ"
+            };
+
+            for (int i = 1; i < vietnameseSigns.Length; i++)
+            {
+                for (int j = 0; j < vietnameseSigns[i].Length; j++)
+                    text = text.Replace(vietnameseSigns[i][j], vietnameseSigns[0][i - 1]);
+            }
+            return text;
+        }
+
     }
 }
