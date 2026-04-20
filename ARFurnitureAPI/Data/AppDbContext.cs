@@ -19,6 +19,7 @@ namespace ARFurnitureAPI.Data
         public DbSet<OrderDetail> OrderDetails { get; set; }
         public DbSet<ProductSize> ProductSizes { get; set; }
         public DbSet<Review> Reviews { get; set; }
+        public DbSet<Voucher> Vouchers { get; set; }
 
     }
 }
