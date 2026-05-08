@@ -100,6 +100,53 @@ namespace ARFurnitureAPI.Controllers
                 code = voucher.Code
             });
         }
+        // 1. LẤY DANH SÁCH VOUCHER CHO TRANG ADMIN
+        [HttpGet]
+        public IActionResult GetAllVouchers()
+        {
+            var vouchers = _context.Vouchers.OrderByDescending(v => v.Id).ToList();
+            return Ok(vouchers);
+        }
+
+        // 2. THÊM VOUCHER MỚI TỪ ADMIN
+        [HttpPost]
+        public IActionResult CreateVoucher([FromBody] Voucher voucher)
+        {
+            _context.Vouchers.Add(voucher);
+            _context.SaveChanges();
+            return Ok(new { message = "Thêm thành công!" });
+        }
+
+        // 3. XÓA VOUCHER
+        [HttpDelete("{id}")]
+        public IActionResult DeleteVoucher(int id)
+        {
+            var voucher = _context.Vouchers.Find(id);
+            if (voucher == null) return NotFound();
+
+            _context.Vouchers.Remove(voucher);
+            _context.SaveChanges();
+            return Ok(new { message = "Xóa thành công!" });
+        }
+        // Lấy chi tiết 1 Voucher theo ID (Để đổ dữ liệu vào form Sửa)
+        [HttpGet("{id}")]
+        public IActionResult GetVoucher(int id)
+        {
+            var voucher = _context.Vouchers.Find(id);
+            if (voucher == null) return NotFound();
+            return Ok(voucher);
+        }
+
+        // Cập nhật Voucher đã có
+        [HttpPut("{id}")]
+        public IActionResult UpdateVoucher(int id, [FromBody] Voucher voucher)
+        {
+            if (id != voucher.Id) return BadRequest();
+
+            _context.Entry(voucher).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+            _context.SaveChanges();
+            return Ok(new { message = "Cập nhật thành công!" });
+        }
     }
 
     // Class hứng dữ liệu từ Mobile gửi lên

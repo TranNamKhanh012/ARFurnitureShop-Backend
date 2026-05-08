@@ -10,6 +10,7 @@ namespace ARFurnitureAPI.Models
         public string ShippingAddress { get; set; }
         public string PhoneNumber { get; set; }
         public string ReceiverName { get; set; }
+        public int? VoucherId { get; set; }
 
 
         // Danh sách các mặt hàng trong Giỏ

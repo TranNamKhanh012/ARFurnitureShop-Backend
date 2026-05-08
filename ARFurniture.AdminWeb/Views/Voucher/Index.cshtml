@@ -1,0 +1,72 @@
+﻿@model IEnumerable<ARFurniture.AdminWeb.Models.VoucherViewModel>
+
+@{
+    ViewData["Title"] = "Quản lý Voucher";
+}
+
+<div class="container-fluid">
+    <h2 class="mt-4">Quản lý Mã Giảm Giá (Voucher)</h2>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div><i class="fas fa-table mr-1"></i> Danh sách Voucher</div>
+            <a asp-controller="Voucher" asp-action="Create" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Thêm Voucher mới
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Mã Code</th>
+                            <th>Mô tả</th>
+                            <th>Loại</th>
+                            <th>Giảm giá</th>
+                            <th>Đơn Tối Thiểu</th>
+                            <th>Hạn Dùng</th>
+                            <th>Lượt dùng</th>
+                            <th>Trạng thái</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td><span class="badge badge-warning text-uppercase" style="font-size:14px;">@item.Code</span></td>
+                                <td>@item.Description</td>
+                                <td>@(item.DiscountType == "FixedAmount" ? "Tiền mặt" : "Phần trăm")</td>
+                                <td>@(item.DiscountType == "FixedAmount" ? string.Format("{0:N0}đ", item.DiscountValue) : item.DiscountValue + "%")</td>
+                                <td>@string.Format("{0:N0}đ", item.MinOrderValue)</td>
+                                <td>@item.EndDate.ToString("dd/MM/yyyy")</td>
+                                <td>@item.UsageLimit</td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="badge badge-success">Đang bật</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-secondary">Tạm tắt</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-info btn-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+
+                                    <a asp-action="Delete" asp-route-id="@item.Id"
+                                       class="btn btn-danger btn-sm"
+                                       onclick="return confirm('Cảnh báo: Bạn có chắc chắn muốn xóa vĩnh viễn voucher này không?');">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

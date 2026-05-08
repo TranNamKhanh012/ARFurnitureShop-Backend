@@ -108,6 +108,11 @@
                         <i class="fas fa-star"></i> Quản lý Phản hồi
                     </a>
                 </li>
+                <li>
+                    <a asp-controller="Voucher" asp-action="Index" class="@(currentController == "Voucher" ? "active" : "")">
+                        <i class="fas fa-ticket-alt"></i> Quản lý Voucher
+                    </a>
+                </li>
                 <hr class="text-white-50" />
                 <li>
                     <a asp-controller="Auth" asp-action="Logout" class="text-danger fw-bold hover-danger">

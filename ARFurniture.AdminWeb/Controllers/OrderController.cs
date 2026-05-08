@@ -69,6 +69,7 @@ namespace ARFurniture.AdminWeb.Controllers
         // Hiển thị Chi tiết đơn hàng
         public async Task<IActionResult> Details(int id)
         {
+            Response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate");
             var response = await _httpClient.GetAsync($"Orders/admin-get/{id}");
             if (response.IsSuccessStatusCode)
             {
@@ -79,6 +80,48 @@ namespace ARFurniture.AdminWeb.Controllers
 
             TempData["Error"] = "Không thể lấy thông tin chi tiết đơn hàng.";
             return RedirectToAction("Index");
+        }
+        // Action Duyệt trả hàng
+        [HttpPost]
+        public async Task<IActionResult> ApproveReturn(int id)
+        {
+            using (var client = new HttpClient())
+            {
+                // ĐÃ SỬA: Thêm chữ Orders vào đường dẫn
+                var response = await client.PutAsJsonAsync($"http://localhost:5103/api/Orders/admin-process-return/{id}", new { isApproved = true });
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Success"] = "Đã phê duyệt hoàn trả và phục hồi kho hàng thành công!";
+                }
+                else
+                {
+                    TempData["Error"] = "Có lỗi xảy ra khi xử lý yêu cầu.";
+                }
+            }
+            return RedirectToAction("Details", new { id = id });
+        }
+
+        // Action Từ chối trả hàng
+        [HttpPost]
+        public async Task<IActionResult> RejectReturn(int id)
+        {
+            using (var client = new HttpClient())
+            {
+                // ĐÃ SỬA: Thêm chữ Orders vào đường dẫn
+                var response = await client.PutAsJsonAsync($"http://localhost:5103/api/Orders/admin-process-return/{id}", new { isApproved = false });
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Success"] = "Đã từ chối yêu cầu hoàn trả của khách hàng.";
+                }
+                else
+                {
+                    // BỔ SUNG: Báo lỗi nếu API gọi thất bại
+                    TempData["Error"] = "Có lỗi xảy ra khi xử lý từ chối.";
+                }
+            }
+            return RedirectToAction("Details", new { id = id });
         }
     }
 }

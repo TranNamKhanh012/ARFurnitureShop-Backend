@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ARFurnitureAPI.Models
 {
@@ -8,7 +9,7 @@ namespace ARFurnitureAPI.Models
     {
         [Key]
         public int Id { get; set; }
-        public int UserId { get; set; }
+        public int? UserId { get; set; }
         public DateTime OrderDate { get; set; } = DateTime.Now;
         public double TotalAmount { get; set; }
 
@@ -24,6 +25,10 @@ namespace ARFurnitureAPI.Models
         public string ShippingAddress { get; set; }
         public string PhoneNumber { get; set; }
         public string ReceiverName { get; set; }
+        public int? VoucherId { get; set; }
+        public string? ReturnReason { get; set; }
+        [ForeignKey("VoucherId")]
+        public virtual Voucher Voucher { get; set; }
 
         // Liên kết 1 Đơn hàng -> Nhiều Chi tiết
         public List<OrderDetail> OrderDetails { get; set; }

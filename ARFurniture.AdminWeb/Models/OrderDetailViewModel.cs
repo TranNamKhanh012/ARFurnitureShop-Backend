@@ -26,6 +26,9 @@ namespace ARFurniture.AdminWeb.Models
         public string OrderStatus { get; set; }
         public string PaymentMethod { get; set; }
         public string PaymentStatus { get; set; }
+        public string VoucherCode { get; set; }
+        public string DiscountInfo { get; set; }
+        public string ReturnReason { get; set; }
         public List<OrderDetailItemViewModel> Items { get; set; }
     }
 }
