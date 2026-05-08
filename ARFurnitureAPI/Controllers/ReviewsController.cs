@@ -34,7 +34,14 @@ namespace ARFurnitureAPI.Controllers
                 .ToListAsync();
 
             // Phép trừ: Đã mua trừ đi Đã đánh giá = Cần đánh giá
-            var pendingProductIds = completedProductIds.Except(reviewedProductIds).ToList();
+            // Bước 1: Lọc bỏ các sản phẩm đã bị xóa (null) và đưa về kiểu int chuẩn
+            var validCompletedProductIds = completedProductIds
+                .Where(id => id.HasValue)
+                .Select(id => id.Value)
+                .ToList();
+
+            // Bước 2: Bây giờ cả 2 danh sách đều là List<int>, Except sẽ chạy mượt mà
+            var pendingProductIds = validCompletedProductIds.Except(reviewedProductIds).ToList();
 
             var pendingProducts = await _context.Products
                 .Where(p => pendingProductIds.Contains(p.Id))

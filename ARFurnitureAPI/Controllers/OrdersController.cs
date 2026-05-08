@@ -132,99 +132,171 @@ namespace ARFurnitureAPI.Controllers
             public string Status { get; set; }
         }
 
-        // 1. API Lấy toàn bộ danh sách đơn hàng cho Admin
+        // 1. API Lấy danh sách đơn hàng (PHIÊN BẢN CHỐNG LỖI DATA IS NULL)
         [HttpGet("admin-list")]
         public async Task<IActionResult> GetAdminOrders()
         {
-            var orders = await _context.Orders
-                .OrderByDescending(o => o.OrderDate)
-                .Select(o => new {
-                    o.Id,
-                    o.ReceiverName,
-                    o.PhoneNumber,
-                    o.ShippingAddress,
-                    o.TotalAmount,
-                    o.OrderDate,
-                    o.OrderStatus,
-                    o.PaymentMethod
-                }).ToListAsync();
+            try
+            {
+                var orders = await _context.Orders
+                    .OrderByDescending(o => o.OrderDate)
+                    .Select(o => new {
+                        Id = o.Id,
+                        // Dùng ?? để ép giá trị rỗng thành chuỗi an toàn
+                        ReceiverName = o.ReceiverName ?? "Khách hàng",
+                        PhoneNumber = o.PhoneNumber ?? "N/A",
+                        ShippingAddress = o.ShippingAddress ?? "N/A",
+                        TotalAmount = o.TotalAmount,
+                        OrderDate = o.OrderDate,
+                        OrderStatus = o.OrderStatus ?? "Pending",
+                        PaymentMethod = o.PaymentMethod ?? "COD"
+                    }).ToListAsync();
 
-            return Ok(orders);
+                return Ok(orders);
+            }
+            catch (Exception ex)
+            {
+                // Nếu vẫn cố tình lỗi, ném thẳng nguyên nhân ra ngoài
+                return StatusCode(500, "LỖI TẠI API ADMIN-LIST: " + ex.Message);
+            }
         }
 
-        // 2. API Cập nhật trạng thái đơn hàng (Pending -> Shipping -> Completed)
+        // 2. API Cập nhật trạng thái đơn hàng (Bọc try-catch an toàn)
         [HttpPut("admin-update-status/{id}")]
         public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateStatusDto request)
         {
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null) return NotFound(new { message = "Không tìm thấy đơn hàng" });
+            try
+            {
+                var order = await _context.Orders.FindAsync(id);
+                if (order == null) return NotFound(new { message = "Không tìm thấy đơn hàng" });
 
-            order.OrderStatus = request.Status;
-            await _context.SaveChangesAsync();
+                order.OrderStatus = request.Status;
+                await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Cập nhật trạng thái thành công" });
+                return Ok(new { message = "Cập nhật trạng thái thành công" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "LỖI UPDATE STATUS: " + ex.Message);
+            }
         }
-        // 3. API Lấy chi tiết 1 đơn hàng (PHIÊN BẢN CHỐNG LỖI DATA IS NULL)
+        // 3. API Lấy chi tiết 1 đơn hàng (PHIÊN BẢN TỐI THƯỢNG - BYPASS 100% LỖI NULL)
         [HttpGet("admin-get/{id}")]
         public async Task<IActionResult> GetAdminOrderDetail(int id)
         {
-            // BƯỚC 1: Lấy đơn hàng gốc
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null) return NotFound(new { message = "Không tìm thấy đơn hàng!" });
-
-            // BƯỚC 2: Lấy thông tin Voucher (nếu đơn hàng này có dùng mã)
-            string voucherCode = null;
-            string discountInfo = null;
-            if (order.VoucherId.HasValue)
+            try
             {
-                var voucher = await _context.Vouchers.FindAsync(order.VoucherId.Value);
-                if (voucher != null)
+                // BƯỚC 1: Lấy đơn hàng bằng Select thay vì FindAsync (Ép kiểu an toàn mọi giá trị)
+                var order = await _context.Orders
+                    .Where(o => o.Id == id)
+                    .Select(o => new {
+                        Id = o.Id,
+                        ReceiverName = o.ReceiverName ?? "",
+                        PhoneNumber = o.PhoneNumber ?? "",
+                        ShippingAddress = o.ShippingAddress ?? "",
+                        TotalAmount = o.TotalAmount,
+                        OrderDate = o.OrderDate,
+                        OrderStatus = o.OrderStatus ?? "Pending",
+                        PaymentMethod = o.PaymentMethod ?? "",
+                        PaymentStatus = o.PaymentStatus ?? "",
+                        ReturnReason = o.ReturnReason ?? "",
+                        // Ép kiểu trực tiếp VoucherId thành int? để chống lỗi Data is Null
+                        VoucherId = (int?)o.VoucherId
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (order == null) return NotFound(new { message = "Không tìm thấy đơn hàng!" });
+
+                // BƯỚC 2: Xử lý Voucher an toàn
+                string voucherCode = null;
+                string discountInfo = null;
+
+                if (order.VoucherId != null)
                 {
-                    voucherCode = voucher.Code;
-                    discountInfo = voucher.DiscountType == "FixedAmount"
-                        ? $"-{voucher.DiscountValue:N0}đ"
-                        : $"-{voucher.DiscountValue}%";
+                    var voucher = await _context.Vouchers
+                        .Where(v => v.Id == order.VoucherId)
+                        .Select(v => new {
+                            v.Code,
+                            v.DiscountType,
+                            // Ép kiểu an toàn để phòng hờ DiscountValue bị rỗng
+                            DiscountValue = (double?)v.DiscountValue
+                        })
+                        .FirstOrDefaultAsync();
+
+                    if (voucher != null)
+                    {
+                        voucherCode = voucher.Code;
+                        discountInfo = voucher.DiscountType == "FixedAmount"
+                            ? $"-{voucher.DiscountValue:N0}đ"
+                            : $"-{voucher.DiscountValue}%";
+                    }
                 }
-            }
 
-            // BƯỚC 3: Lấy danh sách sản phẩm và bóc tách an toàn
-            var orderItems = await _context.OrderDetails.Where(od => od.OrderId == id).ToListAsync();
-            var itemsList = new List<object>();
+                // BƯỚC 3: Lấy chi tiết đơn hàng (Dùng Select để chống lỗi ProductId bị xóa/null)
+                var itemsList = await _context.OrderDetails
+                    .Where(od => od.OrderId == id)
+                    .Select(od => new {
+                        ProductId = (int?)od.ProductId, // Ép kiểu an toàn ngay trong query
+                        Quantity = od.Quantity,
+                        UnitPrice = od.UnitPrice,
+                        SelectedSize = od.SelectedSize ?? ""
+                    })
+                    .ToListAsync();
 
-            foreach (var item in orderItems)
-            {
-                var product = await _context.Products.FindAsync(item.ProductId);
-                itemsList.Add(new
+                var finalItems = new List<object>();
+
+                foreach (var item in itemsList)
                 {
-                    item.ProductId,
-                    ProductName = product != null ? product.Name : "Sản phẩm đã bị xóa",
-                    ProductImage = product != null ? product.ImageUrl : "",
-                    item.Quantity,
-                    item.UnitPrice,
-                    SelectedSize = item.SelectedSize ?? "" // Nếu size bị null thì trả về chuỗi rỗng
+                    string pName = "Sản phẩm đã bị xóa";
+                    string pImg = "";
+
+                    if (item.ProductId != null)
+                    {
+                        var product = await _context.Products
+                            .Where(p => p.Id == item.ProductId)
+                            .Select(p => new { p.Name, p.ImageUrl })
+                            .FirstOrDefaultAsync();
+
+                        if (product != null)
+                        {
+                            pName = product.Name;
+                            pImg = product.ImageUrl;
+                        }
+                    }
+
+                    finalItems.Add(new
+                    {
+                        ProductId = item.ProductId ?? 0,
+                        ProductName = pName,
+                        ProductImage = pImg,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice,
+                        SelectedSize = item.SelectedSize
+                    });
+                }
+
+                // BƯỚC 4: Đóng gói trả về Web Admin
+                return Ok(new
+                {
+                    Id = order.Id,
+                    ReceiverName = order.ReceiverName,
+                    PhoneNumber = order.PhoneNumber,
+                    ShippingAddress = order.ShippingAddress,
+                    TotalAmount = order.TotalAmount,
+                    OrderDate = order.OrderDate,
+                    OrderStatus = order.OrderStatus,
+                    PaymentMethod = order.PaymentMethod,
+                    PaymentStatus = order.PaymentStatus,
+                    ReturnReason = order.ReturnReason,
+                    Items = finalItems,
+                    VoucherCode = voucherCode,
+                    DiscountInfo = discountInfo
                 });
             }
-
-            // BƯỚC 4: Trả kết quả (Bọc ?? "" để chống lỗi SQL Null)
-            return Ok(new
+            catch (Exception ex)
             {
-                Id = order.Id,
-                ReceiverName = order.ReceiverName ?? "",
-                PhoneNumber = order.PhoneNumber ?? "",
-                ShippingAddress = order.ShippingAddress ?? "",
-                TotalAmount = order.TotalAmount,
-                OrderDate = order.OrderDate,
-                OrderStatus = order.OrderStatus ?? "",
-                PaymentMethod = order.PaymentMethod ?? "",
-                PaymentStatus = order.PaymentStatus ?? "",
-
-                // Trả về lý do (Nếu null thì tự động biến thành chuỗi rỗng)
-                ReturnReason = order.ReturnReason ?? "",
-
-                Items = itemsList,
-                VoucherCode = voucherCode,
-                DiscountInfo = discountInfo
-            });
+                return StatusCode(500, "LỖI C# TẠI API: " + ex.Message);
+            }
         }
         // ==========================================
         // KHÁCH HÀNG XÁC NHẬN ĐÃ NHẬN HÀNG

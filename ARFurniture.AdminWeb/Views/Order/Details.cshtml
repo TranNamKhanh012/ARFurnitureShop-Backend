@@ -59,8 +59,40 @@
         </div>
     </div>
 }
+
 <div class="row">
     <div class="col-md-4">
+
+        <div class="card shadow-sm mb-4 border-warning">
+            <div class="card-header bg-warning text-dark fw-bold">
+                <i class="fas fa-edit"></i> Cập nhật trạng thái
+            </div>
+            <div class="card-body">
+                <form asp-action="UpdateStatus" method="post">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="mb-3">
+                        <select name="status" class="form-select fw-bold text-primary">
+                            <!if (Model.OrderStatus == "Pending") {
+                            <option value="Pending" selected>Chờ xác nhận</option> } else {
+                            <option value="Pending">Chờ xác nhận</option> }
+                            <!if (Model.OrderStatus == "Processing") {
+                            <option value="Processing" selected>Đang xử lý</option> } else {
+                            <option value="Processing">Đang xử lý</option> }
+                            <!if (Model.OrderStatus == "Shipping") {
+                            <option value="Shipping" selected>Đang giao hàng</option> } else {
+                            <option value="Shipping">Đang giao hàng</option> }
+                            <!if (Model.OrderStatus == "Completed") {
+                            <option value="Completed" selected>Giao hàng thành công</option> } else {
+                            <option value="Completed">Giao hàng thành công</option> }
+                            <!if (Model.OrderStatus == "Cancelled") {
+                            <option value="Cancelled" selected>Đã hủy</option> } else {
+                            <option value="Cancelled">Đã hủy</option> }
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-save"></i> Lưu trạng thái</button>
+                </form>
+            </div>
+        </div>
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-dark text-white fw-bold">
                 <i class="fas fa-truck"></i> Thông tin giao hàng

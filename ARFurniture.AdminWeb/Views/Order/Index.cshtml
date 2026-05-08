@@ -7,6 +7,21 @@
     <h2>Quản lý Đơn hàng</h2>
 </div>
 
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm fw-bold" role="alert">
+        <i class="fas fa-exclamation-triangle"></i> CẢNH BÁO: @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-check-circle"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 <div class="mb-4">
     <form asp-action="Index" method="get" class="form-inline d-flex">
         <div class="input-group w-50">
@@ -37,51 +52,85 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model)
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><strong>#@item.Id</strong></td>
+                            <td>
+                                @item.ReceiverName <br />
+                                <small class="text-muted">@item.PhoneNumber</small>
+                            </td>
+                            <td>@item.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="text-danger fw-bold">@item.TotalAmount.ToString("#,###") ₫</td>
+                            <td>@item.PaymentMethod</td>
+                            <td>
+                                @if (item.OrderStatus == "Pending")
+                                {
+                                    <span class="badge bg-warning text-dark">Chờ xác nhận</span>
+                                }
+                                else if (item.OrderStatus == "Processing")
+                                {
+                                    <span class="badge bg-info text-dark">Đang xử lý</span>
+                                }
+                                else if (item.OrderStatus == "Shipping")
+                                {
+                                    <span class="badge bg-primary">Đang giao hàng</span>
+                                }
+                                else if (item.OrderStatus == "Completed")
+                                {
+                                    <span class="badge bg-success">Thành công</span>
+                                }
+                                else if (item.OrderStatus == "Cancelled")
+                                {
+                                    <span class="badge bg-danger">Đã hủy</span>
+                                }
+                                else if (item.OrderStatus == "ReturnRequested")
+                                {
+                                    <span class="badge bg-danger text-white shadow-sm border border-dark"><i class="fas fa-undo"></i> Chờ duyệt trả</span>
+                                }
+                                else if (item.OrderStatus == "Returned")
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-check-double"></i> Đã hoàn trả</span>
+                                }
+                                else if (item.OrderStatus == "ReturnRejected")
+                                {
+                                    <span class="badge bg-secondary">Từ chối trả</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@item.OrderStatus</span>
+                                }
+                            </td>
+
+                            <td>
+                                <form asp-action="UpdateStatus" asp-controller="Order" method="post" class="d-flex gap-2">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    @if (item.OrderStatus == "Pending" || item.OrderStatus == "Processing" || item.OrderStatus == "Shipping" || item.OrderStatus == "Completed" || item.OrderStatus == "Cancelled")
+                                    {
+                                        <select name="status" class="form-select form-select-sm" style="width: 140px;">
+                                            <option value="Pending" selected="@(item.OrderStatus == "Pending")">Chờ xác nhận</option>
+                                            <option value="Shipping" selected="@(item.OrderStatus == "Shipping")">Giao hàng</option>
+                                            <option value="Completed" selected="@(item.OrderStatus == "Completed")">Hoàn thành</option>
+                                            <option value="Cancelled" selected="@(item.OrderStatus == "Cancelled")">Hủy đơn</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">Lưu</button>
+                                    }
+
+                                    <a asp-action="Details" asp-controller="Order" asp-route-id="@item.Id" class="btn btn-sm btn-info text-white">
+                                        <i class="fas fa-eye"></i> Xem
+                                    </a>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
                 {
                     <tr>
-                        <td><strong>#@item.Id</strong></td>
-                        <td>
-                            @item.ReceiverName <br />
-                            <small class="text-muted">@item.PhoneNumber</small>
-                        </td>
-                        <td>@item.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
-                        <td class="text-danger fw-bold">@item.TotalAmount.ToString("#,###") ₫</td>
-                        <td>@item.PaymentMethod</td>
-                        <td>
-                            @if (item.OrderStatus == "Pending")
-                            {
-                                <span class="badge bg-warning text-dark">Chờ xác nhận</span>
-                            }
-                            else if (item.OrderStatus == "Shipping")
-                            {
-                                <span class="badge bg-primary">Đang giao hàng</span>
-                            }
-                            else if (item.OrderStatus == "Completed")
-                            {
-                                <span class="badge bg-success">Thành công</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-danger">Đã hủy</span>
-                            }
-                        </td>
-              
-                        <td>
-                            <form asp-action="UpdateStatus" asp-controller="Order" method="post" class="d-flex gap-2">
-                                <input type="hidden" name="id" value="@item.Id" />
-                                <select name="status" class="form-select form-select-sm" style="width: 140px;">
-                                    <option value="Pending" selected="@(item.OrderStatus == "Pending")">Chờ xác nhận</option>
-                                    <option value="Shipping" selected="@(item.OrderStatus == "Shipping")">Giao hàng</option>
-                                    <option value="Completed" selected="@(item.OrderStatus == "Completed")">Hoàn thành</option>
-                                    <option value="Cancelled" selected="@(item.OrderStatus == "Cancelled")">Hủy đơn</option>
-                                </select>
-                                <button type="submit" class="btn btn-sm btn-outline-primary">Lưu</button>
-
-                                <a asp-action="Details" asp-controller="Order" asp-route-id="@item.Id" class="btn btn-sm btn-info text-white">
-                                    <i class="fas fa-eye"></i> Xem
-                                </a>
-                            </form>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            Chưa có dữ liệu đơn hàng hoặc đang xảy ra lỗi.
                         </td>
                     </tr>
                 }
@@ -89,6 +138,7 @@
         </table>
     </div>
 </div>
+
 @if (ViewBag.TotalPages != null && ViewBag.TotalPages > 1)
 {
     <div class="d-flex justify-content-center mt-4">

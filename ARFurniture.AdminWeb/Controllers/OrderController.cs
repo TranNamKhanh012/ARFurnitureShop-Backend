@@ -66,20 +66,33 @@ namespace ARFurniture.AdminWeb.Controllers
 
             return RedirectToAction("Index");
         }
-        // Hiển thị Chi tiết đơn hàng
+        // Hiển thị Chi tiết đơn hàng (CÓ BẮT LỖI CHI TIẾT)
         public async Task<IActionResult> Details(int id)
         {
             Response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate");
-            var response = await _httpClient.GetAsync($"Orders/admin-get/{id}");
-            if (response.IsSuccessStatusCode)
+            try
             {
+                var response = await _httpClient.GetAsync($"Orders/admin-get/{id}");
                 var jsonString = await response.Content.ReadAsStringAsync();
-                var model = JsonSerializer.Deserialize<OrderDetailViewModel>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                return View(model);
-            }
 
-            TempData["Error"] = "Không thể lấy thông tin chi tiết đơn hàng.";
-            return RedirectToAction("Index");
+                if (response.IsSuccessStatusCode)
+                {
+                    var model = JsonSerializer.Deserialize<OrderDetailViewModel>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    return View(model);
+                }
+                else
+                {
+                    // Đẩy thẳng mã lỗi và chi tiết từ API lên màn hình để dễ sửa
+                    TempData["Error"] = $"Lỗi API ({response.StatusCode}): {jsonString}";
+                    return RedirectToAction("Index");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Bắt lỗi nếu Web Admin bị lỗi trong quá trình phân tích JSON (Deserialize)
+                TempData["Error"] = $"Lỗi Web Admin: {ex.Message}";
+                return RedirectToAction("Index");
+            }
         }
         // Action Duyệt trả hàng
         [HttpPost]
