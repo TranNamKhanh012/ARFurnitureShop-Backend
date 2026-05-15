@@ -10,16 +10,11 @@ namespace ARFurnitureAPI.Models
         [Key]
         public int Id { get; set; }
         public int? UserId { get; set; }
-        public DateTime OrderDate { get; set; } = DateTime.Now;
-        public double TotalAmount { get; set; }
+        public DateTime? OrderDate { get; set; } // ĐÃ THÊM ?
+        public double? TotalAmount { get; set; } // ĐÃ THÊM ?
 
-        // Trạng thái đơn hàng: "Pending", "Processing", "Shipped"
         public string OrderStatus { get; set; } = "Pending";
-
-        // Phương thức thanh toán: "COD", "VNPAY", "MOCK"
         public string PaymentMethod { get; set; }
-
-        // Trạng thái thanh toán: "Unpaid", "Paid"
         public string PaymentStatus { get; set; } = "Unpaid";
 
         public string ShippingAddress { get; set; }
@@ -27,10 +22,10 @@ namespace ARFurnitureAPI.Models
         public string ReceiverName { get; set; }
         public int? VoucherId { get; set; }
         public string? ReturnReason { get; set; }
-        [ForeignKey("VoucherId")]
-        public virtual Voucher Voucher { get; set; }
 
-        // Liên kết 1 Đơn hàng -> Nhiều Chi tiết
+        [ForeignKey("VoucherId")]
+        public virtual Voucher? Voucher { get; set; }
+
         public List<OrderDetail> OrderDetails { get; set; }
     }
 }

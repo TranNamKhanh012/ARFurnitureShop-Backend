@@ -136,11 +136,16 @@ namespace ARFurnitureAPI.Controllers
                 .Select(p => new AdminProductDto
                 {
                     Id = p.Id,
-                    ImageUrl = p.ImageUrl,
-                    Name = p.Name,
-                    OriginalPrice = p.Price,
-                    SellingPrice = p.Discount > 0 ? p.Price - (p.Price * p.Discount / 100.0) : p.Price,
-                    StockQuantity = p.StockQuantity,
+                    ImageUrl = p.ImageUrl ?? "", // Thêm ?? "" chống null chuỗi
+                    Name = p.Name ?? "",
+
+                    // Thêm ?? 0 vào các thuộc tính kiểu số
+                    OriginalPrice = p.Price ?? 0,
+                    SellingPrice = (p.Discount ?? 0) > 0
+                                 ? (p.Price ?? 0) - ((p.Price ?? 0) * (p.Discount ?? 0) / 100.0)
+                                 : (p.Price ?? 0),
+
+                    StockQuantity = p.StockQuantity ?? 0,
                     SoldQuantity = _context.OrderDetails
                         .Where(od => _context.Orders.Any(o => o.Id == od.OrderId && o.OrderStatus != "Cancelled") && od.ProductId == p.Id)
                         .Sum(od => (int?)od.Quantity) ?? 0
@@ -170,18 +175,20 @@ namespace ARFurnitureAPI.Controllers
             var dto = new AdminProductFormDto
             {
                 Id = product.Id,
-                Name = product.Name,
-                Price = product.Price,
-                Discount = product.Discount,
-                StockQuantity = product.StockQuantity,
-                ImageUrl = product.ImageUrl,
-                Description = product.Description,
-                CategoryId = product.CategoryId,
+                Name = product.Name ?? "",
+
+                // Thêm ?? 0 để khớp với kiểu dữ liệu của FormDto
+                Price = product.Price ?? 0,
+                Discount = product.Discount ?? 0,
+                StockQuantity = product.StockQuantity ?? 0,
+                CategoryId = product.CategoryId ?? 0,
+
+                ImageUrl = product.ImageUrl ?? "",
+                Description = product.Description ?? "",
                 Sizes = sizes.Any() ? string.Join(", ", sizes) : ""
             };
             return Ok(dto);
         }
-
         // HÀM XỬ LÝ LƯU SIZE VÀO DB (Dùng chung logic cho cả Create và Update)
         private async Task ProcessProductSizes(int productId, string? sizesInput)
         {
@@ -228,7 +235,9 @@ namespace ARFurnitureAPI.Controllers
                 ImageUrl = dto.ImageUrl,
                 Description = dto.Description,
                 CategoryId = dto.CategoryId,
-                DateAdded = System.DateTime.Now
+                DateAdded = System.DateTime.Now,
+                Rating = 0,         // Sản phẩm mới mặc định 0 sao
+                ReviewCount = 0
             };
             _context.Products.Add(product);
             await _context.SaveChangesAsync();

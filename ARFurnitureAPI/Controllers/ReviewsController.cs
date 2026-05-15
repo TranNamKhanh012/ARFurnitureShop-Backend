@@ -19,10 +19,14 @@ namespace ARFurnitureAPI.Controllers
         [HttpGet("pending/{userId}")]
         public async Task<IActionResult> GetPendingReviews(int userId)
         {
-            // Tìm các mặt hàng khách đã mua ở đơn hàng "Completed"
+            // ĐÃ SỬA: Cho phép tìm các mặt hàng ở cả trạng thái Completed và các trạng thái Hoàn trả
             var completedProductIds = await _context.OrderDetails
                 .Include(od => od.Order)
-                .Where(od => od.Order.UserId == userId && od.Order.OrderStatus == "Completed")
+                .Where(od => od.Order.UserId == userId &&
+                            (od.Order.OrderStatus == "Completed" ||
+                             od.Order.OrderStatus == "ReturnRequested" ||
+                             od.Order.OrderStatus == "Returned" ||
+                             od.Order.OrderStatus == "ReturnRejected"))
                 .Select(od => od.ProductId)
                 .Distinct()
                 .ToListAsync();
@@ -64,8 +68,11 @@ namespace ARFurnitureAPI.Controllers
             if (product != null)
             {
                 var allReviews = await _context.Reviews.Where(r => r.ProductId == review.ProductId).ToListAsync();
+
+                // Cập nhật an toàn với các biến Nullable
                 product.ReviewCount = allReviews.Count;
                 product.Rating = Math.Round(allReviews.Average(r => r.Rating), 1);
+
                 await _context.SaveChangesAsync();
             }
 
@@ -126,9 +133,11 @@ namespace ARFurnitureAPI.Controllers
             if (product != null)
             {
                 var remainingReviews = await _context.Reviews.Where(r => r.ProductId == productId).ToListAsync();
+
                 product.ReviewCount = remainingReviews.Count;
                 // Nếu xóa hết sạch review rồi thì set rating về 0
                 product.Rating = remainingReviews.Any() ? Math.Round(remainingReviews.Average(r => r.Rating), 1) : 0;
+
                 await _context.SaveChangesAsync();
             }
 

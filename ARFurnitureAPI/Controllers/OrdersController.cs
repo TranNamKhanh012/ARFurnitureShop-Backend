@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ARFurnitureAPI.Data;
 using ARFurnitureAPI.Models;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
 namespace ARFurnitureAPI.Controllers
@@ -26,7 +28,6 @@ namespace ARFurnitureAPI.Controllers
                 return BadRequest("Dữ liệu đơn hàng không hợp lệ!");
             }
 
-            // 1. Lưu thông tin Đơn Hàng (Bảng Orders)
             var newOrder = new Order
             {
                 UserId = request.UserId,
@@ -41,31 +42,28 @@ namespace ARFurnitureAPI.Controllers
                 PaymentStatus = request.PaymentMethod == "COD" ? "Unpaid" : "Paid"
             };
             _context.Orders.Add(newOrder);
-            await _context.SaveChangesAsync(); // Lưu để lấy được OrderId mới tạo
+            await _context.SaveChangesAsync();
 
-            // 2. Lưu chi tiết và TRỪ TỒN KHO
             foreach (var item in request.Items)
             {
-                // A. Lưu vào lịch sử mua hàng (Thêm SelectedSize để biết khách mua size gì)
                 var orderDetail = new OrderDetail
                 {
                     OrderId = newOrder.Id,
                     ProductId = item.ProductId,
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice,
-                    SelectedSize = item.SelectedSize // Lưu lại size khách đặt
+                    SelectedSize = item.SelectedSize
                 };
                 _context.OrderDetails.Add(orderDetail);
 
-                // B. TRỪ TỒN KHO TỔNG CỦA SẢN PHẨM
                 var product = await _context.Products.FindAsync(item.ProductId);
                 if (product != null)
                 {
-                    product.StockQuantity -= item.Quantity;
-                    if (product.StockQuantity < 0) product.StockQuantity = 0; // Chống âm kho
+                    // SỬA LỖI ĐỎ: Bọc ?? 0 an toàn
+                    product.StockQuantity = (product.StockQuantity ?? 0) - item.Quantity;
+                    if (product.StockQuantity < 0) product.StockQuantity = 0;
                 }
 
-                // C. TRỪ TỒN KHO CỦA RIÊNG SIZE ĐÓ (Nếu sản phẩm có chọn Size)
                 if (!string.IsNullOrEmpty(item.SelectedSize))
                 {
                     var sizeStock = await _context.ProductSizes
@@ -74,12 +72,11 @@ namespace ARFurnitureAPI.Controllers
                     if (sizeStock != null)
                     {
                         sizeStock.StockQuantity -= item.Quantity;
-                        if (sizeStock.StockQuantity < 0) sizeStock.StockQuantity = 0; // Chống âm kho
+                        if (sizeStock.StockQuantity < 0) sizeStock.StockQuantity = 0;
                     }
                 }
             }
 
-            // 3. Xóa giỏ hàng của User sau khi đặt thành công
             var cartItems = _context.CartItems.Where(c => c.UserId == request.UserId).ToList();
             if (cartItems.Any())
             {
@@ -91,31 +88,27 @@ namespace ARFurnitureAPI.Controllers
                 var voucher = _context.Vouchers.Find(request.VoucherId.Value);
                 if (voucher != null && voucher.UsageLimit > 0)
                 {
-                    voucher.UsageLimit -= 1; // Trừ đi 1 lượt sử dụng
+                    voucher.UsageLimit -= 1;
                 }
             }
 
-            // 4. Lưu tất cả thay đổi (OrderDetails, Trừ kho, Xóa giỏ) vào Database cùng 1 lúc
             await _context.SaveChangesAsync();
-
             return Ok(new { Message = "Đặt hàng thành công!", OrderId = newOrder.Id });
         }
-        // ==========================================
-        // API LẤY LỊCH SỬ ĐƠN HÀNG CỦA USER
-        // ==========================================
+
         [HttpGet("user/{userId}")]
         public async Task<IActionResult> GetUserOrders(int userId)
         {
             var orders = await _context.Orders
                 .Where(o => o.UserId == userId)
-                .OrderByDescending(o => o.OrderDate) // Đơn mới nhất xếp lên đầu
+                .OrderByDescending(o => o.OrderDate)
                 .Select(o => new {
                     o.Id,
-                    o.OrderDate,
-                    o.TotalAmount,
-                    o.OrderStatus,
-                    o.PaymentMethod,
-                    o.PaymentStatus
+                    OrderDate = o.OrderDate ?? DateTime.Now,
+                    TotalAmount = o.TotalAmount ?? 0,
+                    OrderStatus = o.OrderStatus ?? "Pending",
+                    PaymentMethod = o.PaymentMethod ?? "COD",
+                    PaymentStatus = o.PaymentStatus ?? "Unpaid"
                 })
                 .ToListAsync();
 
@@ -126,13 +119,9 @@ namespace ARFurnitureAPI.Controllers
 
             return Ok(orders);
         }
-        // Dto nhỏ để nhận dữ liệu trạng thái
-        public class UpdateStatusDto
-        {
-            public string Status { get; set; }
-        }
 
-        // 1. API Lấy danh sách đơn hàng (PHIÊN BẢN CHỐNG LỖI DATA IS NULL)
+        public class UpdateStatusDto { public string Status { get; set; } }
+
         [HttpGet("admin-list")]
         public async Task<IActionResult> GetAdminOrders()
         {
@@ -142,12 +131,11 @@ namespace ARFurnitureAPI.Controllers
                     .OrderByDescending(o => o.OrderDate)
                     .Select(o => new {
                         Id = o.Id,
-                        // Dùng ?? để ép giá trị rỗng thành chuỗi an toàn
                         ReceiverName = o.ReceiverName ?? "Khách hàng",
                         PhoneNumber = o.PhoneNumber ?? "N/A",
                         ShippingAddress = o.ShippingAddress ?? "N/A",
-                        TotalAmount = o.TotalAmount,
-                        OrderDate = o.OrderDate,
+                        TotalAmount = o.TotalAmount ?? 0,
+                        OrderDate = o.OrderDate ?? DateTime.Now,
                         OrderStatus = o.OrderStatus ?? "Pending",
                         PaymentMethod = o.PaymentMethod ?? "COD"
                     }).ToListAsync();
@@ -156,12 +144,10 @@ namespace ARFurnitureAPI.Controllers
             }
             catch (Exception ex)
             {
-                // Nếu vẫn cố tình lỗi, ném thẳng nguyên nhân ra ngoài
                 return StatusCode(500, "LỖI TẠI API ADMIN-LIST: " + ex.Message);
             }
         }
 
-        // 2. API Cập nhật trạng thái đơn hàng (Bọc try-catch an toàn)
         [HttpPut("admin-update-status/{id}")]
         public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateStatusDto request)
         {
@@ -180,13 +166,12 @@ namespace ARFurnitureAPI.Controllers
                 return StatusCode(500, "LỖI UPDATE STATUS: " + ex.Message);
             }
         }
-        // 3. API Lấy chi tiết 1 đơn hàng (PHIÊN BẢN TỐI THƯỢNG - BYPASS 100% LỖI NULL)
+
         [HttpGet("admin-get/{id}")]
         public async Task<IActionResult> GetAdminOrderDetail(int id)
         {
             try
             {
-                // BƯỚC 1: Lấy đơn hàng bằng Select thay vì FindAsync (Ép kiểu an toàn mọi giá trị)
                 var order = await _context.Orders
                     .Where(o => o.Id == id)
                     .Select(o => new {
@@ -194,20 +179,18 @@ namespace ARFurnitureAPI.Controllers
                         ReceiverName = o.ReceiverName ?? "",
                         PhoneNumber = o.PhoneNumber ?? "",
                         ShippingAddress = o.ShippingAddress ?? "",
-                        TotalAmount = o.TotalAmount,
-                        OrderDate = o.OrderDate,
+                        TotalAmount = o.TotalAmount ?? 0,
+                        OrderDate = o.OrderDate ?? DateTime.Now,
                         OrderStatus = o.OrderStatus ?? "Pending",
                         PaymentMethod = o.PaymentMethod ?? "",
                         PaymentStatus = o.PaymentStatus ?? "",
                         ReturnReason = o.ReturnReason ?? "",
-                        // Ép kiểu trực tiếp VoucherId thành int? để chống lỗi Data is Null
                         VoucherId = (int?)o.VoucherId
                     })
                     .FirstOrDefaultAsync();
 
                 if (order == null) return NotFound(new { message = "Không tìm thấy đơn hàng!" });
 
-                // BƯỚC 2: Xử lý Voucher an toàn
                 string voucherCode = null;
                 string discountInfo = null;
 
@@ -218,7 +201,6 @@ namespace ARFurnitureAPI.Controllers
                         .Select(v => new {
                             v.Code,
                             v.DiscountType,
-                            // Ép kiểu an toàn để phòng hờ DiscountValue bị rỗng
                             DiscountValue = (double?)v.DiscountValue
                         })
                         .FirstOrDefaultAsync();
@@ -232,13 +214,12 @@ namespace ARFurnitureAPI.Controllers
                     }
                 }
 
-                // BƯỚC 3: Lấy chi tiết đơn hàng (Dùng Select để chống lỗi ProductId bị xóa/null)
                 var itemsList = await _context.OrderDetails
                     .Where(od => od.OrderId == id)
                     .Select(od => new {
-                        ProductId = (int?)od.ProductId, // Ép kiểu an toàn ngay trong query
-                        Quantity = od.Quantity,
-                        UnitPrice = od.UnitPrice,
+                        ProductId = (int?)od.ProductId,
+                        Quantity = od.Quantity ?? 0,
+                        UnitPrice = od.UnitPrice ?? 0,
                         SelectedSize = od.SelectedSize ?? ""
                     })
                     .ToListAsync();
@@ -259,8 +240,8 @@ namespace ARFurnitureAPI.Controllers
 
                         if (product != null)
                         {
-                            pName = product.Name;
-                            pImg = product.ImageUrl;
+                            pName = product.Name ?? "Chưa có tên";
+                            pImg = product.ImageUrl ?? "";
                         }
                     }
 
@@ -275,7 +256,6 @@ namespace ARFurnitureAPI.Controllers
                     });
                 }
 
-                // BƯỚC 4: Đóng gói trả về Web Admin
                 return Ok(new
                 {
                     Id = order.Id,
@@ -295,12 +275,10 @@ namespace ARFurnitureAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "LỖI C# TẠI API: " + ex.Message);
+                return StatusCode(500, "LỖI API CHI TIẾT: " + ex.Message);
             }
         }
-        // ==========================================
-        // KHÁCH HÀNG XÁC NHẬN ĐÃ NHẬN HÀNG
-        // ==========================================
+
         [HttpPut("user-confirm/{id}")]
         public async Task<IActionResult> UserConfirmOrder(int id)
         {
@@ -312,54 +290,35 @@ namespace ARFurnitureAPI.Controllers
                 return BadRequest(new { message = "Chỉ có thể xác nhận khi đơn hàng đang được giao." });
             }
 
-            // Chuyển trạng thái thành Hoàn thành
             order.OrderStatus = "Completed";
-
-            // Nếu khách chọn COD (Thanh toán khi nhận hàng), thì nhận hàng xong coi như đã trả tiền
-            if (order.PaymentMethod == "COD")
-            {
-                order.PaymentStatus = "Paid";
-            }
-
+            if (order.PaymentMethod == "COD") order.PaymentStatus = "Paid";
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Xác nhận nhận hàng thành công!" });
         }
-        // ==========================================
-        // 1. DTO NHẬN DỮ LIỆU TỪ CLIENT
-        // ==========================================
+
         public class ReturnRequestDto { public string Reason { get; set; } }
         public class ProcessReturnDto { public bool IsApproved { get; set; } }
 
-        // ==========================================
-        // 2. API CHO MOBILE APP: KHÁCH YÊU CẦU TRẢ HÀNG
-        // ==========================================
         [HttpPut("user-request-return/{id}")]
         public async Task<IActionResult> UserRequestReturn(int id, [FromBody] ReturnRequestDto request)
         {
             var order = await _context.Orders.FindAsync(id);
             if (order == null) return NotFound(new { message = "Không tìm thấy đơn hàng" });
 
-            // Chỉ cho phép trả khi trạng thái là Completed (Đã nhận hàng)
             if (order.OrderStatus != "Completed")
-            {
                 return BadRequest(new { message = "Chỉ đơn hàng đã giao thành công mới được yêu cầu hoàn trả." });
-            }
 
-            order.OrderStatus = "ReturnRequested"; // Đổi trạng thái: Đang yêu cầu trả
-            order.ReturnReason = request.Reason;   // Ghi lại lý do khách nhập
+            order.OrderStatus = "ReturnRequested";
+            order.ReturnReason = request.Reason;
 
             await _context.SaveChangesAsync();
             return Ok(new { message = "Đã gửi yêu cầu hoàn trả, vui lòng chờ Admin duyệt!" });
         }
 
-        // ==========================================
-        // 3. API CHO ADMIN WEB: DUYỆT HOẶC TỪ CHỐI
-        // ==========================================
         [HttpPut("admin-process-return/{id}")]
         public async Task<IActionResult> AdminProcessReturn(int id, [FromBody] ProcessReturnDto request)
         {
-            // Lấy đơn hàng kèm theo chi tiết sản phẩm và Voucher để phục hồi
             var order = await _context.Orders
                 .Include(o => o.Voucher)
                 .FirstOrDefaultAsync(o => o.Id == id);
@@ -369,28 +328,27 @@ namespace ARFurnitureAPI.Controllers
 
             if (request.IsApproved)
             {
-                // NẾU ADMIN ĐỒNG Ý
                 order.OrderStatus = "Returned";
-                order.PaymentStatus = "Refunded"; // Đánh dấu là đã hoàn tiền
+                order.PaymentStatus = "Refunded";
 
-                // A. Lấy danh sách sản phẩm trong đơn để cộng lại kho
                 var orderItems = await _context.OrderDetails.Where(od => od.OrderId == id).ToListAsync();
                 foreach (var item in orderItems)
                 {
-                    // Trả lại kho tổng
-                    var product = await _context.Products.FindAsync(item.ProductId);
-                    if (product != null) product.StockQuantity += item.Quantity;
-
-                    // Trả lại kho Size (nếu có)
-                    if (!string.IsNullOrEmpty(item.SelectedSize))
+                    if (item.ProductId.HasValue)
                     {
-                        var sizeStock = await _context.ProductSizes
-                            .FirstOrDefaultAsync(s => s.ProductId == item.ProductId && s.SizeName == item.SelectedSize);
-                        if (sizeStock != null) sizeStock.StockQuantity += item.Quantity;
+                        var product = await _context.Products.FindAsync(item.ProductId.Value);
+                        // SỬA LỖI ĐỎ: Bọc ?? 0 an toàn
+                        if (product != null) product.StockQuantity = (product.StockQuantity ?? 0) + (item.Quantity ?? 0);
+
+                        if (!string.IsNullOrEmpty(item.SelectedSize))
+                        {
+                            var sizeStock = await _context.ProductSizes
+                                .FirstOrDefaultAsync(s => s.ProductId == item.ProductId.Value && s.SizeName == item.SelectedSize);
+                            if (sizeStock != null) sizeStock.StockQuantity += (item.Quantity ?? 0);
+                        }
                     }
                 }
 
-                // B. Trả lại lượt sử dụng Voucher (Nếu có)
                 if (order.VoucherId.HasValue && order.Voucher != null)
                 {
                     order.Voucher.UsageLimit += 1;
@@ -398,7 +356,6 @@ namespace ARFurnitureAPI.Controllers
             }
             else
             {
-                // NẾU ADMIN TỪ CHỐI
                 order.OrderStatus = "ReturnRejected";
             }
 
